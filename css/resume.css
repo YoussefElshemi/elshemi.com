@@ -104,6 +104,9 @@ section.resume-section {
 .text-primary {
   color: #6F42C1 !important; }
 
+.text-secondary {
+  color: #a342c1 !important; }
+
 a {
   color: #6F42C1; }
   a:hover, a:focus, a:active {
