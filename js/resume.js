@@ -2,10 +2,14 @@
   "use strict";
 
   const theme = document.getElementById('theme-stylesheet');
+  const symbol = document.getElementById('symbol');
+
   if (localStorage.getItem('theme') === 'dark') {
     theme.setAttribute('href', 'css/dark.css');
+    symbol.classList.add("fa-lightbulb-o");
   } else {
     theme.setAttribute('href', 'css/light.css');
+    symbol.classList.add("fa-moon-o");
   }
 
   $('a.js-scroll-trigger[href*="#"]:not([href="#"])').click(function () {
@@ -33,9 +37,16 @@
     if (theme.getAttribute('href') == 'css/light.css') {
       theme.setAttribute('href', 'css/dark.css');
       localStorage.setItem('theme', 'dark');
+      
+      symbol.classList.remove("fa-moon-o");
+      symbol.classList.add("fa-lightbulb-o");
+
     } else {
       theme.setAttribute('href', 'css/light.css');
       localStorage.setItem('theme', 'light');
+
+      symbol.classList.add("fa-moon-o");
+      symbol.classList.remove("fa-lightbulb-o");  
     }
   });
 

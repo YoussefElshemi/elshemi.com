@@ -52,7 +52,7 @@ h2 {
 .list-icons {
   font-size: 3rem;
 }
-.list-icons .list-inline-item i:hover {
+.list-icons .list-inline-item i {
   color: #6f42c1;
 }
 
@@ -162,7 +162,7 @@ a:active {
 
 .back-to-top i {
   font-size: 28px;
-  color: #343a40;
+  color: #dee2e6;
   line-height: 0;
 }
 
