@@ -1,7 +1,6 @@
 (function($) {
   "use strict"; // Start of use strict
 
-  // Smooth scrolling using jQuery easing
   $('a.js-scroll-trigger[href*="#"]:not([href="#"])').click(function() {
     if (location.pathname.replace(/^\//, '') == this.pathname.replace(/^\//, '') && location.hostname == this.hostname) {
       var target = $(this.hash);
@@ -15,14 +14,23 @@
     }
   });
 
-  // Closes responsive menu when a scroll trigger link is clicked
   $('.js-scroll-trigger').click(function() {
     $('.navbar-collapse').collapse('hide');
   });
 
-  // Activate scrollspy to add active class to navbar items on scroll
   $('body').scrollspy({
     target: '#sideNav'
   });
+
+  $('#theme').click(function() {
+    const theme = document.getElementById('theme-stylesheet');
+
+    if (theme.getAttribute('href') == 'css/light.css') {
+      theme.setAttribute('href', 'css/dark.css');
+    } else {
+      theme.setAttribute('href', 'css/light.css');
+    }
+  });
+
 
 })(jQuery); // End of use strict
