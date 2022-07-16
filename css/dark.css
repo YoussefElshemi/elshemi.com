@@ -1,7 +1,7 @@
 body {
   font-family: 'Open Sans', serif;
   padding-top: 54px;
-  color: #dee2e6; 
+  color: #868e96; 
   background-color: #343a40;
 }
 
@@ -117,7 +117,7 @@ a {
 .back-to-top {
   position: fixed;
   right: 15px;
-  top: 15px;
+  bottom: 15px;
   z-index: 996;
   background: #6F42C1;
   width: 40px;
@@ -129,16 +129,36 @@ a {
 
 .back-to-top i {
   font-size: 28px;
-  color: #dee2e6;
+  color: #fff;
   line-height: 0;
 }
 
 .back-to-top:hover {
-  background: #a342c1;
+  background: #5C22C9;
   cursor: pointer;
 }
 
 .back-to-top.active {
   visibility: visible;
   opacity: 1;
+}
+
+body::-webkit-scrollbar {
+  background-color: #2e2f31;
+  width: 16px;
+  border-radius: 16px;
+}
+
+body::-webkit-scrollbar-track {
+  background-color: #2e2f31;
+  border-radius: 16px;
+}
+
+body::-webkit-scrollbar-thumb {
+  background-color: #6F42C1;
+  border-radius: 16px;
+}
+
+body::-webkit-scrollbar-button {
+  display:none;
 }
