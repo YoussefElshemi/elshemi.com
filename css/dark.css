@@ -44,7 +44,7 @@ h2 {
   color: #495057;
 }
 .list-social-icons a:hover {
-  color: #1d8676;
+  color: #00c0a8;
 }
 .list-social-icons a .fa-lg {
   font-size: 1.75rem;
@@ -54,7 +54,7 @@ h2 {
   font-size: 3rem;
 }
 .list-icons .list-inline-item i {
-  color: #1d8676;
+  color: #00c0a8;
 }
 
 #sideNav .navbar-nav .nav-item .nav-link {
@@ -128,24 +128,24 @@ section.resume-section .resume-item .resume-date {
 }
 
 .bg-primary {
-  background-color: #1d8676 !important;
+  background-color: #00c0a8 !important;
 }
 
 .text-primary {
-  color: #1d8676 !important;
+  color: #00c0a8 !important;
 }
 
 .text-secondary {
-  color: #00b8a3 !important;
+  color: #1d8676 !important;
 }
 
 a {
-  color: #1d8676;
+  color: #00c0a8;
 }
 a:hover,
 a:focus,
 a:active {
-  color: #00b8a3;
+  color: #1d8676;
 }
 
 .back-to-top {
@@ -153,7 +153,7 @@ a:active {
   right: 15px;
   bottom: 15px;
   z-index: 996;
-  background: #1d8676;
+  background: #00c0a8;
   width: 40px;
   height: 40px;
   border-radius: 4px;
@@ -168,7 +168,7 @@ a:active {
 }
 
 .back-to-top:hover {
-  background: #00b8a3;
+  background: #1d8676;
   cursor: pointer;
 }
 
@@ -189,7 +189,7 @@ body::-webkit-scrollbar-track {
 }
 
 body::-webkit-scrollbar-thumb {
-  background-color: #1d8676;
+  background-color: #00c0a8;
   border-radius: 16px;
 }
 
