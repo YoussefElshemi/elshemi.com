@@ -405,9 +405,10 @@
   const bar = document.getElementById('scroll-progress');
   function update() {
     const max = document.documentElement.scrollHeight - window.innerHeight;
-    bar.style.width = (max > 0 ? window.scrollY / max * 100 : 0) + '%';
+    bar.style.transform = `scaleX(${max > 0 ? window.scrollY / max : 0})`;
   }
   window.addEventListener('scroll', update, { passive: true });
+  update();
 })();
 
 (function () {

@@ -541,10 +541,13 @@ footer a:hover { color: var(--accent); }
   position: absolute;
   bottom: 0; left: 0;
   height: 3px;
-  width: 0%;
+  width: 100%;
   background: var(--accent);
   box-shadow: 0 0 10px var(--accent);
   pointer-events: none;
+  transform: scaleX(0);
+  transform-origin: 0 0;
+  transition: transform 0.15s ease-out;
 }
 
 .reveal {
