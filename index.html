@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
   <title>Youssef Elshemi - Software Engineer</title>
   <meta name="description" content="Youssef Elshemi — software engineer in London building payment infrastructure in fintech. AWS, .NET, Kubernetes, and distributed systems.">
   <link rel="canonical" href="https://elshemi.com/">
@@ -246,7 +246,10 @@
       <div id="terminal-output" aria-live="polite"></div>
       <div class="terminal-input-row">
         <span class="terminal-prompt">youssef@elshemi.com:~$</span>
-        <input id="terminal-input" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" aria-label="Terminal input">
+        <div class="terminal-input-wrap">
+          <span id="terminal-ghost" aria-hidden="true"></span>
+          <input id="terminal-input" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" aria-label="Terminal input">
+        </div>
       </div>
     </div>
   </div>

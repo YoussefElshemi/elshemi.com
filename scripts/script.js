@@ -68,16 +68,42 @@
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
 
-  const COUNT = window.innerWidth < 768 ? 100 : 300;
   const CONNECT_DIST = 100;
   const MOUSE_DIST = 150;
   let particles = [];
   let mouse = { x: null, y: null };
   let rafId;
 
+  const BASE_CHARS = 7;
+  const FORM_HOLD_MS = 2200;
+  const DISPERSE_MS = 1400;
+  const SWIRL_MS = 1200;
+  const STAGGER_MS = 400;
+  let swirlMs = SWIRL_MS;
+  let staggerMs = STAGGER_MS;
+  let holdMs = FORM_HOLD_MS;
+  let formationPhase = null;
+  let formationStart = null;
+  let waveX = null;
+
+  function targetCount() {
+    return window.innerWidth < 768 ? 100 : 300;
+  }
+
   function resize() {
+    const oldW = canvas.width;
+    const oldH = canvas.height;
     canvas.width = canvas.offsetWidth;
     canvas.height = canvas.offsetHeight;
+    if (oldW && oldH && (oldW !== canvas.width || oldH !== canvas.height)) {
+      const sx = canvas.width / oldW;
+      const sy = canvas.height / oldH;
+      particles.forEach(p => { p.x *= sx; p.y *= sy; });
+      if (formationPhase) releaseFormation();
+    }
+    const target = targetCount();
+    while (particles.length > target) particles.pop();
+    while (particles.length < target) particles.push(new Particle());
   }
   window.addEventListener('resize', resize);
   resize();
@@ -107,7 +133,17 @@
   }
 
   Particle.prototype.update = function () {
-    if (formationPhase && this.target) {
+    if (formationPhase === 'form' && this.target) {
+      if (formationStart === null) return;
+      const t = Math.min(1, Math.max(0, (performance.now() - formationStart - this.delay) / swirlMs));
+      const e = 1 - Math.pow(1 - t, 3);
+      const u = 1 - e;
+      this.x = u * u * this.start.x + 2 * u * e * this.ctrl.x + e * e * this.target.x;
+      this.y = u * u * this.start.y + 2 * u * e * this.ctrl.y + e * e * this.target.y;
+      this.arrived = t >= 1;
+      return;
+    }
+    if (formationPhase === 'disperse' && this.target) {
       this.x += (this.target.x - this.x) * 0.07;
       this.y += (this.target.y - this.y) * 0.07;
       return;
@@ -131,18 +167,25 @@
   };
 
   Particle.prototype.draw = function () {
+    let alpha = 0.65;
+    let r = this.r;
+    if (formationPhase === 'form' && this.arrived) {
+      alpha = 0.95;
+      r += 0.6;
+      if (waveX !== null) {
+        const d = Math.abs(this.x - waveX);
+        if (d < 120) {
+          const b = 1 - d / 120;
+          alpha = Math.min(1, alpha + b * 0.05);
+          r += b * 1.4;
+        }
+      }
+    }
     ctx.beginPath();
-    ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(190,21,73,0.65)';
+    ctx.arc(this.x, this.y, r, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(190,21,73,${alpha})`;
     ctx.fill();
   };
-
-  for (let i = 0; i < COUNT; i++) particles.push(new Particle());
-
-  const FORM_HOLD_MS = 2200;
-  const DISPERSE_MS = 1400;
-  let formationPhase = null;
-  let formationStart = null;
 
   function sampleTextPoints(text) {
     const off = document.createElement('canvas');
@@ -154,7 +197,7 @@
     octx.textAlign = 'center';
     octx.textBaseline = 'middle';
     octx.fillStyle = '#fff';
-    octx.fillText(text, off.width / 2, off.height * 0.32);
+    octx.fillText(text, off.width / 2, off.height / 2);
     const data = octx.getImageData(0, 0, off.width, off.height).data;
     const points = [];
     const stride = 4;
@@ -171,18 +214,37 @@
     const text = window.innerWidth < 768 ? 'YE' : 'YOUSSEF';
     const points = sampleTextPoints(text);
     if (!points.length) return;
+    const scale = text.length / BASE_CHARS;
+    swirlMs = SWIRL_MS * scale;
+    staggerMs = STAGGER_MS * scale;
+    holdMs = FORM_HOLD_MS * scale;
     particles.forEach((p, i) => {
       p.home = { x: p.x, y: p.y };
+      p.start = { x: p.x, y: p.y };
       p.target = points[Math.floor((i / particles.length) * points.length)];
+      const mx = (p.x + p.target.x) / 2;
+      const my = (p.y + p.target.y) / 2;
+      const dx = p.target.x - p.x;
+      const dy = p.target.y - p.y;
+      const len = Math.sqrt(dx * dx + dy * dy) || 1;
+      const bow = (Math.random() - 0.5) * 2 * Math.min(180, len * 0.5);
+      p.ctrl = { x: mx - (dy / len) * bow, y: my + (dx / len) * bow };
+      p.delay = (p.target.x / canvas.width) * staggerMs;
+      p.arrived = false;
     });
     formationPhase = 'form';
     formationStart = null;
+    window.__heroIntroManaged = true;
+    const content = document.querySelector('.hero-content');
+    if (content) content.classList.remove('visible');
   }
 
   function disperseFormation() {
     particles.forEach(p => { p.target = p.home; });
     formationPhase = 'disperse';
     formationStart = performance.now();
+    waveX = null;
+    if (window.startHeroTyping) window.startHeroTyping();
   }
 
   function releaseFormation() {
@@ -219,8 +281,10 @@
     if (formationPhase) {
       if (formationStart === null) {
         if (!document.hidden) formationStart = performance.now();
-      } else if (formationPhase === 'form' && performance.now() - formationStart > FORM_HOLD_MS) {
-        disperseFormation();
+      } else if (formationPhase === 'form') {
+        const formed = performance.now() - formationStart - swirlMs - staggerMs;
+        waveX = formed > 0 ? -150 + (formed / holdMs) * (canvas.width + 300) : null;
+        if (formed > holdMs) disperseFormation();
       } else if (formationPhase === 'disperse' && performance.now() - formationStart > DISPERSE_MS) {
         releaseFormation();
       }
@@ -242,6 +306,9 @@
   const HEADLINE = "Hi, I'm Youssef Elshemi";
   const SUBTITLES = ['AWS & .NET Backend Engineer', 'Payments & FX Engineer', 'Distributed Systems Builder'];
   let subIdx = 0;
+  let timers = [];
+
+  function later(fn, ms) { timers.push(setTimeout(fn, ms)); }
 
   function type(el, text, speed, done) {
     let i = 0;
@@ -250,6 +317,7 @@
       el.textContent += text[i++];
       if (i >= text.length) { clearInterval(t); if (done) done(); }
     }, speed);
+    timers.push(t);
   }
 
   function erase(el, speed, done) {
@@ -257,22 +325,38 @@
       el.textContent = el.textContent.slice(0, -1);
       if (!el.textContent.length) { clearInterval(t); if (done) done(); }
     }, speed);
+    timers.push(t);
   }
 
   function cycle() {
     type(subtitleEl, SUBTITLES[subIdx], 65, () => {
-      setTimeout(() => {
+      later(() => {
         erase(subtitleEl, 40, () => {
           subIdx = (subIdx + 1) % SUBTITLES.length;
-          setTimeout(cycle, 300);
+          later(cycle, 300);
         });
       }, 2200);
     });
   }
 
-  type(headlineEl, HEADLINE, 55, () => {
-    setTimeout(cycle, 450);
-  });
+  function startHeroTyping() {
+    timers.forEach(clearTimeout);
+    timers = [];
+    subIdx = 0;
+    headlineEl.textContent = '';
+    subtitleEl.textContent = '';
+    const content = document.querySelector('.hero-content');
+    if (content) content.classList.add('visible');
+    type(headlineEl, HEADLINE, 55, () => {
+      later(cycle, 450);
+    });
+  }
+
+  window.startHeroTyping = startHeroTyping;
+
+  setTimeout(() => {
+    if (!window.__heroIntroManaged) startHeroTyping();
+  }, 300);
 })();
 
 (function () {
@@ -555,6 +639,23 @@
   let historyIdx = -1;
   let booted = false;
 
+  const ghost = document.getElementById('terminal-ghost');
+  const CMD_NAMES = ['clear', 'contact', 'exit', 'experience', 'help', 'particles', 'skills', 'sudo', 'whoami'];
+  let suggestion = null;
+
+  function updateGhost() {
+    suggestion = null;
+    if (ghost) ghost.textContent = '';
+    const val = input.value;
+    if (!val || /\s/.test(val)) return;
+    const match = CMD_NAMES.find(c => c.startsWith(val.toLowerCase()) && c !== val.toLowerCase());
+    if (match) {
+      suggestion = match;
+      if (ghost) ghost.textContent = val + match.slice(val.length);
+    }
+  }
+  input.addEventListener('input', updateGhost);
+
   const COMMANDS = {
     help: [
       '<span class="t-accent">Available commands:</span>',
@@ -613,8 +714,19 @@
     output.scrollTop = output.scrollHeight;
   }
 
+  function fitOverlay() {
+    if (overlay.hidden || !window.visualViewport) return;
+    overlay.style.top = window.visualViewport.offsetTop + 'px';
+    overlay.style.height = window.visualViewport.height + 'px';
+  }
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', fitOverlay);
+    window.visualViewport.addEventListener('scroll', fitOverlay);
+  }
+
   function open() {
     overlay.hidden = false;
+    fitOverlay();
     if (!booted) {
       booted = true;
       print('<span class="t-muted">elshemi.com terminal — type <span class="t-accent">help</span> to get started.</span>');
@@ -624,6 +736,8 @@
 
   function close() {
     overlay.hidden = true;
+    overlay.style.top = '';
+    overlay.style.height = '';
     input.blur();
   }
 
@@ -650,19 +764,24 @@
   }
 
   input.addEventListener('keydown', e => {
-    if (e.key === 'Enter') {
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      if (suggestion) { input.value = suggestion; updateGhost(); }
+    } else if (e.key === 'Enter') {
       const val = input.value;
       if (val.trim()) { history.push(val); }
       historyIdx = history.length;
       input.value = '';
+      updateGhost();
       run(val);
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
-      if (historyIdx > 0) { historyIdx--; input.value = history[historyIdx]; }
+      if (historyIdx > 0) { historyIdx--; input.value = history[historyIdx]; updateGhost(); }
     } else if (e.key === 'ArrowDown') {
       e.preventDefault();
       if (historyIdx < history.length - 1) { historyIdx++; input.value = history[historyIdx]; }
       else { historyIdx = history.length; input.value = ''; }
+      updateGhost();
     }
   });
 
