@@ -764,7 +764,7 @@
   }
 
   input.addEventListener('keydown', e => {
-    if (e.key === 'Tab') {
+    if (e.key === 'Tab' || e.key === 'ArrowRight') {
       e.preventDefault();
       if (suggestion) { input.value = suggestion; updateGhost(); }
     } else if (e.key === 'Enter') {
