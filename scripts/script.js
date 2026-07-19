@@ -68,9 +68,7 @@
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
 
-  if (window.innerWidth < 768) { canvas.style.display = 'none'; return; }
-
-  const COUNT = 300;
+  const COUNT = window.innerWidth < 768 ? 90 : 300;
   const CONNECT_DIST = 100;
   const MOUSE_DIST = 150;
   let particles = [];
@@ -78,12 +76,6 @@
   let rafId;
 
   function resize() {
-    if (window.innerWidth < 768) {
-      canvas.style.display = 'none';
-      cancelAnimationFrame(rafId);
-      return;
-    }
-    canvas.style.display = '';
     canvas.width = canvas.offsetWidth;
     canvas.height = canvas.offsetHeight;
   }
@@ -96,7 +88,15 @@
     mouse.y = e.clientY - r.top;
   });
   const hero = document.getElementById('hero');
-  if (hero) hero.addEventListener('mouseleave', () => { mouse.x = null; mouse.y = null; });
+  if (hero) {
+    hero.addEventListener('mouseleave', () => { mouse.x = null; mouse.y = null; });
+    hero.addEventListener('touchmove', e => {
+      const r = canvas.getBoundingClientRect();
+      mouse.x = e.touches[0].clientX - r.left;
+      mouse.y = e.touches[0].clientY - r.top;
+    }, { passive: true });
+    hero.addEventListener('touchend', () => { mouse.x = null; mouse.y = null; });
+  }
 
   function Particle() {
     this.x = Math.random() * canvas.width;
