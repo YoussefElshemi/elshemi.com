@@ -391,6 +391,7 @@
 })();
 
 (function () {
+  if (window.matchMedia('(hover: none)').matches) return;
   const nav = document.querySelector('nav');
   function update() {
     const p = Math.min(window.scrollY / 150, 1);
