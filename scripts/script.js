@@ -68,7 +68,7 @@
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
 
-  const COUNT = window.innerWidth < 768 ? 90 : 300;
+  const COUNT = window.innerWidth < 768 ? 100 : 300;
   const CONNECT_DIST = 100;
   const MOUSE_DIST = 150;
   let particles = [];
@@ -107,6 +107,11 @@
   }
 
   Particle.prototype.update = function () {
+    if (formationPhase && this.target) {
+      this.x += (this.target.x - this.x) * 0.07;
+      this.y += (this.target.y - this.y) * 0.07;
+      return;
+    }
     if (mouse.x !== null) {
       const dx = mouse.x - this.x;
       const dy = mouse.y - this.y;
@@ -134,6 +139,63 @@
 
   for (let i = 0; i < COUNT; i++) particles.push(new Particle());
 
+  const FORM_HOLD_MS = 2200;
+  const DISPERSE_MS = 1400;
+  let formationPhase = null;
+  let formationStart = null;
+
+  function sampleTextPoints(text) {
+    const off = document.createElement('canvas');
+    off.width = canvas.width;
+    off.height = canvas.height;
+    const octx = off.getContext('2d');
+    const fontSize = Math.min((canvas.width * 0.9) / (text.length * 0.62), canvas.height * 0.35);
+    octx.font = '700 ' + fontSize + 'px Inter, sans-serif';
+    octx.textAlign = 'center';
+    octx.textBaseline = 'middle';
+    octx.fillStyle = '#fff';
+    octx.fillText(text, off.width / 2, off.height * 0.32);
+    const data = octx.getImageData(0, 0, off.width, off.height).data;
+    const points = [];
+    const stride = 4;
+    for (let y = 0; y < off.height; y += stride) {
+      for (let x = 0; x < off.width; x += stride) {
+        if (data[(y * off.width + x) * 4 + 3] > 128) points.push({ x, y });
+      }
+    }
+    return points;
+  }
+
+  function formParticles() {
+    if (!canvas.width || !canvas.height) return;
+    const text = window.innerWidth < 768 ? 'YE' : 'YOUSSEF';
+    const points = sampleTextPoints(text);
+    if (!points.length) return;
+    particles.forEach((p, i) => {
+      p.home = { x: p.x, y: p.y };
+      p.target = points[Math.floor((i / particles.length) * points.length)];
+    });
+    formationPhase = 'form';
+    formationStart = null;
+  }
+
+  function disperseFormation() {
+    particles.forEach(p => { p.target = p.home; });
+    formationPhase = 'disperse';
+    formationStart = performance.now();
+  }
+
+  function releaseFormation() {
+    formationPhase = null;
+    particles.forEach(p => {
+      p.target = null;
+      p.vx = (Math.random() - 0.5) * 0.45;
+      p.vy = (Math.random() - 0.5) * 0.45;
+    });
+  }
+
+  window.formParticles = formParticles;
+
   function connect() {
     for (let i = 0; i < particles.length; i++) {
       for (let j = i + 1; j < particles.length; j++) {
@@ -154,12 +216,22 @@
   }
 
   function loop() {
+    if (formationPhase) {
+      if (formationStart === null) {
+        if (!document.hidden) formationStart = performance.now();
+      } else if (formationPhase === 'form' && performance.now() - formationStart > FORM_HOLD_MS) {
+        disperseFormation();
+      } else if (formationPhase === 'disperse' && performance.now() - formationStart > DISPERSE_MS) {
+        releaseFormation();
+      }
+    }
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     particles.forEach(p => { p.update(); p.draw(); });
     connect();
     rafId = requestAnimationFrame(loop);
   }
   loop();
+  formParticles();
 })();
 
 (function () {
@@ -470,4 +542,146 @@
     requestAnimationFrame(loop);
   }
   loop();
+})();
+
+(function () {
+  const overlay = document.getElementById('terminal-overlay');
+  const output = document.getElementById('terminal-output');
+  const input = document.getElementById('terminal-input');
+  const toggle = document.getElementById('terminal-toggle');
+  if (!overlay || !output || !input || !toggle) return;
+
+  const history = [];
+  let historyIdx = -1;
+  let booted = false;
+
+  const COMMANDS = {
+    help: [
+      '<span class="t-accent">Available commands:</span>',
+      '  whoami       who is this guy',
+      '  experience   where I\'ve worked',
+      '  skills       what I work with',
+      '  contact      how to reach me',
+      '  particles    re-run the hero animation',
+      '  clear        clear the screen',
+      '  exit         close the terminal'
+    ].join('\n'),
+    whoami: [
+      '<span class="t-accent">Youssef Elshemi</span> — Software Engineer, London',
+      'Building payment infrastructure in fintech: API integrations',
+      'processing billions in payments, containerised services on',
+      'Kubernetes, AWS, .NET. BSc Computer Science, University of',
+      'Exeter (First Class Honours). English & Arabic.'
+    ].join('\n'),
+    experience: [
+      '<span class="t-accent">Software Engineer</span> · Alpha Group <span class="t-muted">(Jan 2025 – Present)</span>',
+      '  K8s migrations, Verification of Payee, BoE compliance',
+      '<span class="t-accent">Graduate Software Engineer</span> · Alpha Group <span class="t-muted">(Sep 2023 – Jan 2025)</span>',
+      '  Bank API integrations (£25bn+ processed), STP (-90% processing time)',
+      '<span class="t-accent">Co-Founder & CTO</span> · DataScrapa <span class="t-muted">(Feb 2023 – Jan 2024)</span>',
+      '  AWS serverless data pipeline, millions of records daily'
+    ].join('\n'),
+    skills: [
+      '<span class="t-accent">Languages</span>      C#/.NET Core, Python, TypeScript, Apex',
+      '<span class="t-accent">Cloud/DevOps</span>   AWS, Docker, Kubernetes, IaC, CircleCI, Jenkins',
+      '<span class="t-accent">Data</span>           PostgreSQL, MongoDB, MySQL, Big Data',
+      '<span class="t-accent">Payments</span>       REST APIs, SWIFT, H2H, Open Banking',
+      '<span class="t-accent">Engineering</span>    System Design, Distributed Systems, EDA, CI/CD'
+    ].join('\n'),
+    contact: [
+      'email     <a href="mailto:youssef@elshemi.com">youssef@elshemi.com</a>',
+      'linkedin  <a href="https://www.linkedin.com/in/youssef-elshemi/" target="_blank" rel="noopener">linkedin.com/in/youssef-elshemi</a>',
+      'github    <a href="https://github.com/YoussefElshemi" target="_blank" rel="noopener">github.com/YoussefElshemi</a>'
+    ].join('\n')
+  };
+
+  function print(html) {
+    const line = document.createElement('div');
+    line.innerHTML = html;
+    output.appendChild(line);
+    output.scrollTop = output.scrollHeight;
+  }
+
+  function printEcho(cmd) {
+    const line = document.createElement('div');
+    const prompt = document.createElement('span');
+    prompt.className = 't-accent';
+    prompt.textContent = '$ ';
+    line.appendChild(prompt);
+    line.appendChild(document.createTextNode(cmd));
+    output.appendChild(line);
+    output.scrollTop = output.scrollHeight;
+  }
+
+  function open() {
+    overlay.hidden = false;
+    if (!booted) {
+      booted = true;
+      print('<span class="t-muted">elshemi.com terminal — type <span class="t-accent">help</span> to get started.</span>');
+    }
+    input.focus();
+  }
+
+  function close() {
+    overlay.hidden = true;
+    input.blur();
+  }
+
+  function run(raw) {
+    const cmd = raw.trim();
+    printEcho(cmd);
+    if (!cmd) return;
+    const name = cmd.split(/\s+/)[0].toLowerCase();
+    if (name === 'clear') { output.innerHTML = ''; return; }
+    if (name === 'exit') { close(); return; }
+    if (name === 'sudo') { print('youssef is not in the sudoers file. This incident will be reported.'); return; }
+    if (name === 'particles') {
+      print('<span class="t-muted">re-running hero animation…</span>');
+      close();
+      window.smoothScrollTo(0, 600);
+      setTimeout(() => { if (window.formParticles) window.formParticles(); }, 650);
+      return;
+    }
+    if (COMMANDS[name]) { print(COMMANDS[name]); return; }
+    const err = document.createElement('div');
+    err.textContent = 'command not found: ' + name;
+    output.appendChild(err);
+    print('<span class="t-muted">type <span class="t-accent">help</span> for available commands</span>');
+  }
+
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      const val = input.value;
+      if (val.trim()) { history.push(val); }
+      historyIdx = history.length;
+      input.value = '';
+      run(val);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (historyIdx > 0) { historyIdx--; input.value = history[historyIdx]; }
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      if (historyIdx < history.length - 1) { historyIdx++; input.value = history[historyIdx]; }
+      else { historyIdx = history.length; input.value = ''; }
+    }
+  });
+
+  toggle.addEventListener('click', () => { overlay.hidden ? open() : close(); });
+
+  overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+
+  document.getElementById('terminal-window').addEventListener('click', e => {
+    if (e.target.closest('a')) return;
+    if (window.getSelection().toString()) return;
+    input.focus();
+  });
+
+  document.addEventListener('keydown', e => {
+    if (e.key === '`' && overlay.hidden && document.activeElement.tagName !== 'INPUT') {
+      e.preventDefault();
+      open();
+    } else if (e.key === 'Escape' && !overlay.hidden) {
+      close();
+    }
+  });
 })();

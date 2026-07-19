@@ -235,6 +235,22 @@
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 15l-6-6-6 6"/></svg>
   </button>
 
+  <button id="terminal-toggle" aria-label="Open terminal">&gt;_</button>
+
+  <div id="terminal-overlay" hidden>
+    <div id="terminal-window">
+      <div class="terminal-titlebar">
+        <span class="terminal-dot"></span><span class="terminal-dot"></span><span class="terminal-dot"></span>
+        <span class="terminal-title">youssef@elshemi.com — bash</span>
+      </div>
+      <div id="terminal-output" aria-live="polite"></div>
+      <div class="terminal-input-row">
+        <span class="terminal-prompt">youssef@elshemi.com:~$</span>
+        <input id="terminal-input" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" aria-label="Terminal input">
+      </div>
+    </div>
+  </div>
+
   <script src="scripts/script.js"></script>
 </body>
 </html>
