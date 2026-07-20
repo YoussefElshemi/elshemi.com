@@ -768,21 +768,46 @@ setTimeout(() => {
   let booted = false;
 
   const ghost = document.getElementById('terminal-ghost');
-  const CMD_NAMES = ['clear', 'contact', 'exit', 'experience', 'help', 'particles', 'skills', 'sudo', 'theme', 'whoami'];
+  const CMD_NAMES = ['cat', 'cd', 'clear', 'contact', 'date', 'echo', 'exit', 'experience', 'help', 'ls', 'man', 'matrix', 'neofetch', 'particles', 'ping', 'pwd', 'skills', 'sudo', 'theme', 'uname', 'whoami'];
   let suggestion = null;
+  let cycleMatches = [];
+  let cycleIdx = -1;
+  let activeMatrixTeardown = null;
 
   function updateGhost() {
     suggestion = null;
     if (ghost) ghost.textContent = '';
     const val = input.value;
-    if (!val || /\s/.test(val)) return;
-    const match = CMD_NAMES.find(c => c.startsWith(val.toLowerCase()) && c !== val.toLowerCase());
-    if (match) {
-      suggestion = match;
-      if (ghost) ghost.textContent = val + match.slice(val.length);
+    if (!val) return;
+    const spaceIdx = val.indexOf(' ');
+    if (spaceIdx === -1) {
+      const match = CMD_NAMES.find(c => c.startsWith(val.toLowerCase()) && c !== val.toLowerCase());
+      if (match) {
+        suggestion = match;
+        if (ghost) ghost.textContent = val + match.slice(val.length);
+      }
+    } else {
+      const base = val.slice(0, spaceIdx).toLowerCase();
+      const arg = val.slice(spaceIdx + 1);
+      const ARG_COMPLETIONS = {
+        man: CMD_NAMES,
+        cd: ['about', 'contact', 'experience', 'skills', '..', '~'],
+        cat: ['about.txt', 'contact.txt', 'experience.txt', 'skills.txt'],
+        ls: ['-la'],
+        theme: ['dark', 'light'],
+        ping: ['elshemi.com']
+      };
+      const completions = ARG_COMPLETIONS[base];
+      if (completions) {
+        const match = completions.find(c => c.startsWith(arg.toLowerCase()) && c !== arg.toLowerCase());
+        if (match) {
+          suggestion = val.slice(0, spaceIdx + 1) + match;
+          if (ghost) ghost.textContent = suggestion;
+        }
+      }
     }
   }
-  input.addEventListener('input', updateGhost);
+  input.addEventListener('input', () => { cycleMatches = []; cycleIdx = -1; updateGhost(); });
 
   const COMMANDS = {
     help: [
@@ -794,7 +819,18 @@ setTimeout(() => {
       '  particles    re-run the hero animation',
       '  theme        switch light/dark mode',
       '  clear        clear the screen',
-      '  exit         close the terminal'
+      '  exit         close the terminal',
+      '  ls           list site sections',
+      '  cd           navigate to a section',
+      '  pwd          print working directory',
+      '  cat          print file contents',
+      '  echo         write arguments to stdout',
+      '  date         display current date and time',
+      '  ping         send ICMP packets to a host',
+      '  uname        print system information',
+      '  neofetch     display system info with style',
+      '  man          display manual for a command',
+      '  matrix       enter the matrix'
     ].join('\n'),
     whoami: [
       '<span class="t-accent">Youssef Elshemi</span> — Software Engineer, London',
@@ -896,6 +932,7 @@ setTimeout(() => {
   });
 
   function run(raw) {
+    if (activeMatrixTeardown) { activeMatrixTeardown(); activeMatrixTeardown = null; }
     const cmd = raw.trim();
     printEcho(cmd);
     if (!cmd) return;
@@ -923,6 +960,209 @@ setTimeout(() => {
       }
       return;
     }
+    if (name === 'matrix') {
+      const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+      const mcW = output.clientWidth;
+      const mcH = output.clientHeight;
+      const mc = document.createElement('canvas');
+      mc.width = mcW;
+      mc.height = mcH;
+      output.style.position = 'relative';
+      mc.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;cursor:pointer;';
+      output.appendChild(mc);
+      const mctx = mc.getContext('2d');
+      const cols = Math.floor(mcW / 14);
+      const drops = Array.from({length: cols}, () => Math.random() * -(mcH / 14));
+      const chars = 'アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン0123456789ABCDEF'.split('');
+      let rafId;
+      function drawMatrix() {
+        mctx.fillStyle = isLight ? 'rgba(245,235,238,0.18)' : 'rgba(10,0,2,0.09)';
+        mctx.fillRect(0, 0, mcW, mcH);
+        mctx.font = '14px "Fira Code", monospace';
+        drops.forEach((y, i) => {
+          const ch = chars[Math.floor(Math.random() * chars.length)];
+          const b = Math.random();
+          mctx.fillStyle = isLight
+            ? (b > 0.95 ? '#5a0820' : b > 0.6 ? '#8b1530' : '#c05070')
+            : (b > 0.95 ? '#ffb3cc' : b > 0.6 ? '#be1549' : '#6b0c29');
+          mctx.fillText(ch, i * 14, y * 14);
+          drops[i] = y > mcH / 14 && Math.random() > 0.975 ? 0 : y + 1;
+        });
+        rafId = requestAnimationFrame(drawMatrix);
+      }
+      rafId = requestAnimationFrame(drawMatrix);
+      function matrixTeardown() {
+        cancelAnimationFrame(rafId);
+        mc.remove();
+        output.style.position = '';
+        document.removeEventListener('keydown', matrixKey, true);
+        activeMatrixTeardown = null;
+      }
+      function matrixKey(e) {
+        if (e.key === 'Escape') { e.stopImmediatePropagation(); matrixTeardown(); }
+      }
+      document.addEventListener('keydown', matrixKey, true);
+      mc.addEventListener('click', matrixTeardown);
+      activeMatrixTeardown = matrixTeardown;
+      return;
+    }
+    if (name === 'date') {
+      print(new Date().toString());
+      return;
+    }
+    if (name === 'echo') {
+      print(cmd.slice(4).trim());
+      return;
+    }
+    if (name === 'ping') {
+      const host = cmd.slice(4).trim() || 'elshemi.com';
+      const times = Array.from({length: 4}, () => (1 + Math.random() * 12).toFixed(1));
+      const nums = times.map(Number);
+      const avg = (nums.reduce((a, b) => a + b, 0) / 4).toFixed(1);
+      print('PING ' + host + ': 56 data bytes');
+      times.forEach((t, i) => {
+        setTimeout(() => {
+          print('64 bytes from ' + host + ': icmp_seq=' + i + ' ttl=64 time=' + t + ' ms');
+        }, (i + 1) * 800);
+      });
+      setTimeout(() => {
+        print('--- ' + host + ' ping statistics ---');
+        print('4 packets transmitted, 4 received, 0.0% packet loss');
+        print('round-trip min/avg/max = ' + Math.min(...nums).toFixed(1) + '/' + avg + '/' + Math.max(...nums).toFixed(1) + ' ms');
+      }, 5 * 800);
+      return;
+    }
+    if (name === 'neofetch') {
+      const theme = document.documentElement.getAttribute('data-theme') || 'dark';
+      const uptime = Math.floor(performance.now() / 1000);
+      const ua = navigator.userAgent;
+      const browser = /Edg/.test(ua) ? 'Edge' : /Chrome/.test(ua) ? 'Chrome' : /Firefox/.test(ua) ? 'Firefox' : /Safari/.test(ua) ? 'Safari' : 'Browser';
+      const particleCount = window.innerWidth < 768 ? 200 : 500;
+      const a = '<span class="t-accent">';
+      const z = '</span>';
+      const logo = [
+        '  ............................  ',
+        ' .............................. ',
+        '................................',
+        '..........    ....    ..........',
+        '...........    ..    ...........',
+        '............        ............',
+        '.............      .............',
+        '..............    ..............',
+        '..............    ..............',
+        '..............    ..............',
+        '................................',
+        ' .............................. ',
+        '  ............................  ',
+      ];
+      const info = [
+        'youssef@elshemi.com',
+        a + '───────────────────' + z,
+        'OS:         elshemi.com v1.0',
+        'Host:       ' + browser,
+        'Uptime:     ' + uptime + 's',
+        'Shell:      bash (simulated)',
+        'Theme:      ' + theme,
+        'Particles:  ' + particleCount,
+        'Location:   London, UK',
+        'Languages:  C#, Python, TypeScript',
+      ];
+      const infoStart = 3;
+      print(logo.map((l, i) => {
+        const infoIdx = i - infoStart;
+        return a + l + z + (infoIdx >= 0 && infoIdx < info.length ? '   ' + info[infoIdx] : '');
+      }).join('\n'));
+      return;
+    }
+    if (name === 'man') {
+      const topic = cmd.slice(3).trim().toLowerCase();
+      if (!topic) { print('<span class="t-muted">usage: man [command]</span>'); return; }
+      const pages = {
+        whoami:    'NAME\n    whoami - print current user\n\nSYNOPSIS\n    whoami\n\nDESCRIPTION\n    Displays the name of the current user of this terminal.',
+        help:      'NAME\n    help - list available commands\n\nSYNOPSIS\n    help\n\nDESCRIPTION\n    Prints a summary of all commands supported by this terminal.',
+        ls:        'NAME\n    ls - list site sections\n\nSYNOPSIS\n    ls [-la]\n\nDESCRIPTION\n    Without flags, lists site sections. With -la shows a long listing with permissions and sizes.',
+        pwd:       'NAME\n    pwd - print working directory\n\nSYNOPSIS\n    pwd\n\nDESCRIPTION\n    Outputs the current working directory path.',
+        cat:       'NAME\n    cat - print file contents\n\nSYNOPSIS\n    cat [file]\n\nDESCRIPTION\n    Prints the contents of the given file. Supported files: about.txt, experience.txt, skills.txt, contact.txt.',
+        cd:        'NAME\n    cd - navigate to a section\n\nSYNOPSIS\n    cd [section]\n\nDESCRIPTION\n    Scrolls to the given section and closes the terminal. Sections: about, experience, skills, contact. Use cd or cd ~ to return to the top.',
+        echo:      'NAME\n    echo - write arguments to stdout\n\nSYNOPSIS\n    echo [text]\n\nDESCRIPTION\n    Writes the given text to the terminal output.',
+        date:      'NAME\n    date - display current date and time\n\nSYNOPSIS\n    date\n\nDESCRIPTION\n    Prints the current date and time from your system clock.',
+        ping:      'NAME\n    ping - send ICMP packets to a host\n\nSYNOPSIS\n    ping [host]\n\nDESCRIPTION\n    Sends 4 simulated ICMP packets to the given host and prints round-trip statistics.',
+        uname:     'NAME\n    uname - print system information\n\nSYNOPSIS\n    uname\n\nDESCRIPTION\n    Prints system information about the current environment.',
+        neofetch:  'NAME\n    neofetch - display system information with style\n\nSYNOPSIS\n    neofetch\n\nDESCRIPTION\n    Prints a summary of the current environment including theme, uptime, and particle count.',
+        matrix:    'NAME\n    matrix - enter the matrix\n\nSYNOPSIS\n    matrix\n\nDESCRIPTION\n    Renders a Matrix rain animation inside the terminal. Click the canvas or press ESC to stop.',
+        theme:     'NAME\n    theme - toggle light/dark mode\n\nSYNOPSIS\n    theme [light|dark]\n\nDESCRIPTION\n    Without arguments, shows the current theme. With an argument, switches to that theme.',
+        particles: 'NAME\n    particles - re-run the hero animation\n\nSYNOPSIS\n    particles\n\nDESCRIPTION\n    Scrolls to the top and replays the particle formation animation.',
+        clear:     'NAME\n    clear - clear the terminal\n\nSYNOPSIS\n    clear\n\nDESCRIPTION\n    Removes all output from the terminal screen.',
+        exit:      'NAME\n    exit - close the terminal\n\nSYNOPSIS\n    exit\n\nDESCRIPTION\n    Closes the terminal overlay.',
+        sudo:      'NAME\n    sudo - execute a command as superuser\n\nSYNOPSIS\n    sudo [command]\n\nDESCRIPTION\n    You are not in the sudoers file. This incident will be reported.'
+      };
+      if (!pages[topic]) { print('No manual entry for ' + topic); return; }
+      print(pages[topic]);
+      return;
+    }
+    if (name === 'ls') {
+      const arg = cmd.slice(2).trim();
+      if (arg === '-la') {
+        print([
+          'total 9',
+          'drwxr-xr-x  <span class="t-accent">hero/</span>            4.2K  Jan 25 2025',
+          'drwxr-xr-x  <span class="t-accent">about/</span>           2.1K  Jan 25 2025',
+          'drwxr-xr-x  <span class="t-accent">experience/</span>      8.4K  Jan 25 2025',
+          'drwxr-xr-x  <span class="t-accent">skills/</span>          3.7K  Jan 25 2025',
+          'drwxr-xr-x  <span class="t-accent">contact/</span>         1.8K  Jan 25 2025',
+          '-rw-r--r--  about.txt           512  Jan 25 2025',
+          '-rw-r--r--  experience.txt      1.2K  Jan 25 2025',
+          '-rw-r--r--  skills.txt           892  Jan 25 2025',
+          '-rw-r--r--  contact.txt          256  Jan 25 2025'
+        ].join('\n'));
+      } else {
+        print('<span class="t-accent">hero/</span>  <span class="t-accent">about/</span>  <span class="t-accent">experience/</span>  <span class="t-accent">skills/</span>  <span class="t-accent">contact/</span>  about.txt  experience.txt  skills.txt  contact.txt');
+      }
+      return;
+    }
+    if (name === 'pwd') {
+      print('/home/youssef/elshemi.com');
+      return;
+    }
+    if (name === 'uname') {
+      print('Darwin elshemi.com 23.0.0 Browser x86_64 JavaScript');
+      return;
+    }
+    if (name === 'cat') {
+      const arg = cmd.slice(3).trim();
+      if (arg === 'about.txt') {
+        print('Software engineer with 3 years of experience building payment infrastructure in fintech. Working across the full stack — from API integrations processing billions in payments to containerised services on Kubernetes. AWS, .NET, and distributed systems.');
+      } else if (arg === 'experience.txt') {
+        print(COMMANDS.experience);
+      } else if (arg === 'skills.txt') {
+        print(COMMANDS.skills);
+      } else if (arg === 'contact.txt') {
+        print(COMMANDS.contact);
+      } else {
+        print('cat: ' + (arg || '(no file)') + ': No such file or directory');
+      }
+      return;
+    }
+    if (name === 'cd') {
+      const arg = cmd.slice(2).trim().toLowerCase();
+      const sections = ['about', 'experience', 'skills', 'contact'];
+      if (!arg || arg === '~' || arg === '..') {
+        window.smoothScrollTo(0, 600);
+        close();
+        return;
+      }
+      if (sections.includes(arg)) {
+        const el = document.getElementById(arg);
+        if (el) {
+          const navH = document.querySelector('nav')?.offsetHeight ?? 0;
+          window.smoothScrollTo(el.getBoundingClientRect().top + window.scrollY - navH - 16, 750);
+        }
+        close();
+        return;
+      }
+      print('<span class="t-muted">bash: cd: ' + arg + ': No such file or directory</span>');
+      return;
+    }
     if (COMMANDS[name]) { print(COMMANDS[name]); return; }
     const err = document.createElement('div');
     err.textContent = 'command not found: ' + name;
@@ -931,10 +1171,26 @@ setTimeout(() => {
   }
 
   input.addEventListener('keydown', e => {
-    if (e.key === 'Tab' || e.key === 'ArrowRight') {
+    if (e.key === 'Tab') {
       e.preventDefault();
-      if (suggestion) { input.value = suggestion; updateGhost(); }
+      if (input.value.indexOf(' ') === -1) {
+        if (cycleIdx === -1) {
+          cycleMatches = CMD_NAMES.filter(c => c.startsWith(input.value.toLowerCase()) && c !== input.value.toLowerCase());
+          if (cycleMatches.length === 0) return;
+          cycleIdx = 0;
+        } else {
+          cycleIdx = (cycleIdx + 1) % cycleMatches.length;
+        }
+        input.value = cycleMatches[cycleIdx];
+        updateGhost();
+      } else {
+        if (suggestion) { input.value = suggestion; cycleMatches = []; cycleIdx = -1; updateGhost(); }
+      }
+    } else if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      if (suggestion) { input.value = suggestion; cycleMatches = []; cycleIdx = -1; updateGhost(); }
     } else if (e.key === 'Enter') {
+      cycleMatches = []; cycleIdx = -1;
       const val = input.value;
       if (val.trim()) { history.push(val); }
       historyIdx = history.length;
@@ -943,15 +1199,18 @@ setTimeout(() => {
       run(val);
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
+      cycleMatches = []; cycleIdx = -1;
       if (historyIdx > 0) { historyIdx--; input.value = history[historyIdx]; updateGhost(); }
     } else if (e.key === 'ArrowDown') {
       e.preventDefault();
+      cycleMatches = []; cycleIdx = -1;
       if (historyIdx < history.length - 1) { historyIdx++; input.value = history[historyIdx]; }
       else { historyIdx = history.length; input.value = ''; }
       updateGhost();
     }
   });
 
+  window.__terminalOpen = open;
   toggle.addEventListener('click', () => { overlay.hidden ? open() : close(); });
 
   overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
@@ -990,6 +1249,121 @@ setTimeout(() => {
       document.startViewTransition(() => apply(next));
     } else {
       apply(next);
+    }
+  });
+})();
+
+(function () {
+  const overlay = document.getElementById('palette-overlay');
+  const input = document.getElementById('palette-input');
+  const results = document.getElementById('palette-results');
+  if (!overlay || !input || !results) return;
+
+  const NAV_ICON = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>';
+  const ACT_ICON = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>';
+
+  function scrollToSection(id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const navH = document.querySelector('nav')?.offsetHeight ?? 0;
+    window.smoothScrollTo(el.getBoundingClientRect().top + window.scrollY - navH - 16, 750);
+  }
+
+  const ITEMS = [
+    { section: 'Navigation', label: 'Home',             icon: NAV_ICON, kbd: null, action: () => window.smoothScrollTo(0, 750) },
+    { section: 'Navigation', label: 'About',            icon: NAV_ICON, kbd: null, action: () => scrollToSection('about') },
+    { section: 'Navigation', label: 'Experience',       icon: NAV_ICON, kbd: null, action: () => scrollToSection('experience') },
+    { section: 'Navigation', label: 'Skills',           icon: NAV_ICON, kbd: null, action: () => scrollToSection('skills') },
+    { section: 'Navigation', label: 'Contact',          icon: NAV_ICON, kbd: null, action: () => scrollToSection('contact') },
+    { section: 'Actions',    label: 'Toggle Theme',     icon: ACT_ICON, kbd: null, action: () => { const next = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light'; if (window.__applyTheme) window.__applyTheme(next); } },
+    { section: 'Actions',    label: 'Open Terminal',    icon: ACT_ICON, kbd: '`',  action: () => { if (window.__terminalOpen) window.__terminalOpen(); } },
+    { section: 'Actions',    label: 'Re-run Particles', icon: ACT_ICON, kbd: null, action: () => { window.smoothScrollTo(0, 600); setTimeout(() => { if (window.formParticles) window.formParticles(); }, 650); } },
+    { section: 'Actions',    label: 'Back to Top',      icon: ACT_ICON, kbd: null, action: () => window.smoothScrollTo(0, 750) },
+  ];
+
+  let activeIdx = 0;
+  let filtered = ITEMS.slice();
+
+  function render() {
+    results.innerHTML = '';
+    const query = input.value.trim().toLowerCase();
+    filtered = query ? ITEMS.filter(item => item.label.toLowerCase().includes(query)) : ITEMS.slice();
+    if (activeIdx >= filtered.length) activeIdx = 0;
+    let lastSection = null;
+    filtered.forEach((item, i) => {
+      if (!query && item.section !== lastSection) {
+        const lbl = document.createElement('div');
+        lbl.className = 'palette-section-label';
+        lbl.textContent = item.section;
+        results.appendChild(lbl);
+        lastSection = item.section;
+      }
+      const el = document.createElement('div');
+      el.className = 'palette-item' + (i === activeIdx ? ' active' : '');
+      el.setAttribute('role', 'option');
+      el.innerHTML = '<span class="palette-item-icon">' + item.icon + '</span>' +
+        '<span class="palette-item-label">' + item.label + '</span>' +
+        (item.kbd ? '<kbd class="palette-item-kbd">' + item.kbd + '</kbd>' : '');
+      el.addEventListener('mouseenter', () => {
+        activeIdx = i;
+        results.querySelectorAll('.palette-item').forEach((item, j) => item.classList.toggle('active', j === i));
+      });
+      el.addEventListener('click', () => execute(i));
+      results.appendChild(el);
+    });
+  }
+
+  function execute(idx) {
+    const item = filtered[idx];
+    if (!item) return;
+    closePalette();
+    item.action();
+  }
+
+  function openPalette() {
+    overlay.hidden = false;
+    const win = document.getElementById('palette-window');
+    if (win) { win.style.animation = 'none'; void win.offsetWidth; win.style.animation = ''; }
+    input.value = '';
+    activeIdx = 0;
+    render();
+    input.focus();
+  }
+
+  function closePalette() {
+    overlay.hidden = true;
+  }
+
+  input.addEventListener('input', () => { activeIdx = 0; render(); });
+
+  input.addEventListener('keydown', e => {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      activeIdx = (activeIdx + 1) % (filtered.length || 1);
+      render();
+      results.querySelector('.palette-item.active')?.scrollIntoView({ block: 'nearest' });
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      activeIdx = (activeIdx - 1 + (filtered.length || 1)) % (filtered.length || 1);
+      render();
+      results.querySelector('.palette-item.active')?.scrollIntoView({ block: 'nearest' });
+    } else if (e.key === 'Enter') {
+      execute(activeIdx);
+    } else if (e.key === 'Escape') {
+      closePalette();
+    }
+  });
+
+  overlay.addEventListener('click', e => { if (e.target === overlay) closePalette(); });
+
+  document.addEventListener('keydown', e => {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+      e.preventDefault();
+      const active = document.activeElement;
+      if (active && active.tagName === 'INPUT' && active.id !== 'palette-input') return;
+      overlay.hidden ? openPalette() : closePalette();
+    } else if (e.key === 'Escape' && !overlay.hidden) {
+      closePalette();
     }
   });
 })();
