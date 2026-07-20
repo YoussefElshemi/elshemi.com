@@ -758,7 +758,7 @@ setTimeout(() => {
       '<span class="t-accent">Engineering</span>    System Design, Distributed Systems, EDA, CI/CD'
     ].join('\n'),
     contact: [
-      'email     <a href="mailto:youssef@elshemi.com">youssef@elshemi.com</a>',
+      'email     <a href="mailto:youssef@elshemi.com" target="_blank" rel="noopener">youssef@elshemi.com</a>',
       'linkedin  <a href="https://www.linkedin.com/in/youssef-elshemi/" target="_blank" rel="noopener">linkedin.com/in/youssef-elshemi</a>',
       'github    <a href="https://github.com/YoussefElshemi" target="_blank" rel="noopener">github.com/YoussefElshemi</a>'
     ].join('\n')
