@@ -106,8 +106,34 @@ window.initParticles2D = function () {
     if (oldW && oldH && (oldW !== canvas.width || oldH !== canvas.height)) {
       const sx = canvas.width / oldW;
       const sy = canvas.height / oldH;
-      particles.forEach(p => { p.x *= sx; p.y *= sy; });
-      if (formationPhase) releaseFormation();
+      particles.forEach(p => {
+        p.x *= sx; p.y *= sy;
+        if (p.home)  { p.home.x  *= sx; p.home.y  *= sy; }
+        if (p.start) { p.start.x *= sx; p.start.y *= sy; }
+        if (p.ctrl)  { p.ctrl.x  *= sx; p.ctrl.y  *= sy; }
+      });
+      if (formationPhase === 'form') {
+        const text = window.innerWidth < 768 ? 'YE' : 'YOUSSEF';
+        const points = sampleTextPoints(text);
+        if (points.length) {
+          const scale = text.length / BASE_CHARS;
+          swirlMs   = SWIRL_MS   * scale;
+          staggerMs = STAGGER_MS * scale;
+          holdMs    = FORM_HOLD_MS * scale;
+          particles.forEach((p, i) => {
+            p.target = points[Math.floor((i / particles.length) * points.length)];
+            const mx = (p.start.x + p.target.x) / 2;
+            const my = (p.start.y + p.target.y) / 2;
+            const dx = p.target.x - p.start.x;
+            const dy = p.target.y - p.start.y;
+            const len = Math.sqrt(dx * dx + dy * dy) || 1;
+            const bow = (Math.random() - 0.5) * 2 * Math.min(180, len * 0.5);
+            p.ctrl = { x: mx - (dy / len) * bow, y: my + (dx / len) * bow };
+            p.delay = (p.target.x / canvas.width) * staggerMs;
+            p.arrived = false;
+          });
+        }
+      }
     }
     const target = targetCount();
     while (particles.length > target) particles.pop();
