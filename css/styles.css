@@ -732,17 +732,17 @@ footer a:hover { color: var(--accent); }
   z-index: 9000;
   background: rgba(0,0,0,0.6);
   backdrop-filter: blur(6px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 1rem;
 }
 #terminal-overlay[hidden] { display: none; }
 
 #terminal-window {
-  width: 100%;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(640px, calc(100vw - 2rem));
   max-width: 640px;
-  height: min(420px, 80%);
+  height: min(420px, 80vh);
   background: var(--terminal-bg);
   border: 1px solid rgba(var(--accent-rgb),0.4);
   border-radius: 8px;

@@ -904,6 +904,9 @@ setTimeout(() => {
     overlay.style.top = '';
     overlay.style.height = '';
     win.classList.remove('minimized', 'fullscreen');
+    win.style.left = '';
+    win.style.top = '';
+    win.style.transform = '';
     input.blur();
   }
 
@@ -920,13 +923,57 @@ setTimeout(() => {
   const dotClose = document.querySelector('.dot-close');
   const dotMin   = document.querySelector('.dot-min');
   const dotMax   = document.querySelector('.dot-max');
-  if (dotClose) dotClose.addEventListener('click', () => { reset(); close(); });
-  if (dotMin) dotMin.addEventListener('click', close);
-  if (dotMax) dotMax.addEventListener('click', () => {
+  if (dotClose) dotClose.addEventListener('click', e => { e.stopPropagation(); reset(); close(); });
+  if (dotMin)   dotMin.addEventListener('click',   e => { e.stopPropagation(); close(); });
+  if (dotMax)   dotMax.addEventListener('click',   e => {
+    e.stopPropagation();
     win.classList.remove('minimized');
     win.classList.toggle('fullscreen');
     input.focus();
   });
+
+  const titlebar = document.querySelector('.terminal-titlebar');
+  if (titlebar) {
+    let dragStartX, dragStartY, dragOrigLeft, dragOrigTop;
+
+    titlebar.addEventListener('pointerdown', e => {
+      if (win.classList.contains('fullscreen')) return;
+      if (e.target.classList.contains('terminal-dot')) return;
+
+      const overlayRect = overlay.getBoundingClientRect();
+      const winRect = win.getBoundingClientRect();
+
+      dragStartX = e.clientX;
+      dragStartY = e.clientY;
+      dragOrigLeft = winRect.left - overlayRect.left;
+      dragOrigTop  = winRect.top  - overlayRect.top;
+
+      win.style.transform = 'none';
+      win.style.left = dragOrigLeft + 'px';
+      win.style.top  = dragOrigTop  + 'px';
+
+      titlebar.setPointerCapture(e.pointerId);
+    });
+
+    titlebar.addEventListener('pointermove', e => {
+      if (!titlebar.hasPointerCapture(e.pointerId)) return;
+
+      const overlayRect = overlay.getBoundingClientRect();
+      const winRect = win.getBoundingClientRect();
+      const maxLeft = overlayRect.width  - winRect.width;
+      const maxTop  = overlayRect.height - winRect.height;
+
+      const newLeft = Math.min(Math.max(0, dragOrigLeft + (e.clientX - dragStartX)), maxLeft);
+      const newTop  = Math.min(Math.max(0, dragOrigTop  + (e.clientY - dragStartY)), maxTop);
+
+      win.style.left = newLeft + 'px';
+      win.style.top  = newTop  + 'px';
+    });
+
+    titlebar.addEventListener('pointerup', e => {
+      titlebar.releasePointerCapture(e.pointerId);
+    });
+  }
 
   function run(raw) {
     if (activeMatrixTeardown) { activeMatrixTeardown(); activeMatrixTeardown = null; }
