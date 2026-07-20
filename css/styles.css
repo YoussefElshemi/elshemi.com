@@ -223,6 +223,10 @@ nav {
   grid-template-columns: 3fr 2fr;
   gap: 4rem;
   align-items: center;
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  padding: 3rem;
 }
 
 .hl {
