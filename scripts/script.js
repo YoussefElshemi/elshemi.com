@@ -130,6 +130,22 @@ window.initParticles2D = function () {
       mouse.y = e.touches[0].clientY - r.top;
     }, { passive: true });
     hero.addEventListener('touchend', () => { mouse.x = null; mouse.y = null; });
+    hero.addEventListener('click', e => {
+      const r = canvas.getBoundingClientRect();
+      const px = e.clientX - r.left;
+      const py = e.clientY - r.top;
+      for (let i = 0; i < 6; i++) {
+        const p = new Particle();
+        p.x = px + (Math.random() - 0.5) * 4;
+        p.y = py + (Math.random() - 0.5) * 4;
+        p.sx = p.x;
+        p.sy = p.y;
+        p.vx = (Math.random() - 0.5) * 0.3;
+        p.vy = (Math.random() - 0.5) * 0.3;
+        particles.push(p);
+      }
+      while (particles.length > Math.round(targetCount() * 1.2)) particles.shift();
+    });
   }
 
   function Particle() {
@@ -167,7 +183,7 @@ window.initParticles2D = function () {
       const dx = mouse.x - this.sx;
       const dy = mouse.y - this.sy;
       const d = Math.sqrt(dx * dx + dy * dy);
-      if (d < MOUSE_DIST) {
+      if (d > 0 && d < MOUSE_DIST) {
         const f = (MOUSE_DIST - d) / MOUSE_DIST;
         this.vx += (dx / d) * f * 0.5;
         this.vy += (dy / d) * f * 0.5;
