@@ -6,7 +6,7 @@
   --text-muted: #888888;
   --text-strong: rgba(255, 255, 255, 0.82);
   --text-body: rgba(255, 255, 255, 0.72);
-  --surface: rgba(255, 255, 255, 0.03);
+  --surface: #141414;
   --surface-hover: rgba(255, 255, 255, 0.08);
   --border-subtle: rgba(255, 255, 255, 0.07);
   --border-soft: rgba(255, 255, 255, 0.15);
@@ -125,14 +125,15 @@ nav {
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow: hidden;
 }
 
 #particle-canvas {
-  position: absolute;
+  position: fixed;
   inset: 0;
-  width: 100%;
-  height: 100%;
+  width: 100vw;
+  height: 100vh;
+  z-index: -1;
+  pointer-events: none;
 }
 
 .hero-content {
@@ -429,6 +430,7 @@ nav {
   border: 1px solid rgba(var(--accent-rgb),0.25);
   border-radius: 4px;
   color: var(--text-body);
+  background: var(--surface);
   transition: box-shadow 0.2s, border-color 0.2s, color 0.2s, transform 0.2s;
 }
 .skill-tag:hover {
@@ -483,6 +485,7 @@ nav {
   color: var(--text);
   text-decoration: none;
   font-size: 0.95rem;
+  background: var(--surface);
   transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s, color 0.2s;
 }
 .contact-link:hover {
@@ -493,6 +496,7 @@ nav {
 }
 
 footer {
+  background: var(--bg);
   padding: 2rem;
   padding-bottom: calc(2rem + env(safe-area-inset-bottom, 0px));
   text-align: center;
@@ -708,6 +712,9 @@ footer a:hover { color: var(--accent); }
   font-size: 0.85rem;
   cursor: pointer;
   z-index: 90;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   transition: border-color 0.2s, box-shadow 0.2s;
 }
 #terminal-toggle:hover {
@@ -850,7 +857,7 @@ html[data-theme='light'] {
   --text-muted: #6f6a66;
   --text-strong: rgba(25, 25, 25, 0.85);
   --text-body: rgba(25, 25, 25, 0.74);
-  --surface: rgba(0, 0, 0, 0.035);
+  --surface: #edeae7;
   --surface-hover: rgba(0, 0, 0, 0.07);
   --border-subtle: rgba(0, 0, 0, 0.09);
   --border-soft: rgba(0, 0, 0, 0.18);

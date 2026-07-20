@@ -5,7 +5,10 @@
   function alignWithFooter() {
     const footer = document.querySelector('footer');
     if (!footer) return;
-    btn.style.bottom = ((footer.offsetHeight - 42) / 2) + 'px';
+    const bottom = ((footer.offsetHeight - 42) / 2) + 'px';
+    btn.style.bottom = bottom;
+    const terminal = document.getElementById('terminal-toggle');
+    if (terminal) terminal.style.bottom = bottom;
   }
   alignWithFooter();
   window.addEventListener('resize', alignWithFooter);
@@ -102,8 +105,8 @@ window.initParticles2D = function () {
   function resize() {
     const oldW = canvas.width;
     const oldH = canvas.height;
-    canvas.width = canvas.offsetWidth;
-    canvas.height = canvas.offsetHeight;
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
     overflowPx = Math.round(canvas.width * 0.12);
     if (oldW && oldH && (oldW !== canvas.width || oldH !== canvas.height)) {
       const sx = canvas.width / oldW;
@@ -145,19 +148,19 @@ window.initParticles2D = function () {
   resize();
 
   document.addEventListener('mousemove', e => {
-    const r = canvas.getBoundingClientRect();
-    mouse.x = e.clientX - r.left;
-    mouse.y = e.clientY - r.top;
+    mouse.x = e.clientX;
+    mouse.y = e.clientY;
   });
+  document.addEventListener('mouseleave', e => {
+    if (!e.relatedTarget) { mouse.x = null; mouse.y = null; }
+  });
+  document.addEventListener('touchmove', e => {
+    mouse.x = e.touches[0].clientX;
+    mouse.y = e.touches[0].clientY;
+  }, { passive: true });
+  document.addEventListener('touchend', () => { mouse.x = null; mouse.y = null; });
   const hero = document.getElementById('hero');
   if (hero) {
-    hero.addEventListener('mouseleave', () => { mouse.x = null; mouse.y = null; });
-    hero.addEventListener('touchmove', e => {
-      const r = canvas.getBoundingClientRect();
-      mouse.x = e.touches[0].clientX - r.left;
-      mouse.y = e.touches[0].clientY - r.top;
-    }, { passive: true });
-    hero.addEventListener('touchend', () => { mouse.x = null; mouse.y = null; });
     hero.addEventListener('click', e => {
       const r = canvas.getBoundingClientRect();
       const px = e.clientX - r.left;
