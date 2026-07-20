@@ -162,17 +162,28 @@ window.initParticles2D = function () {
       const r = canvas.getBoundingClientRect();
       const px = e.clientX - r.left;
       const py = e.clientY - r.top;
+      const cx = canvas.width / 2;
+      const cy = canvas.height / 2;
+      let ps = 1, ox = 0, oy = 0;
+      for (let k = 0; k < 5; k++) {
+        ox = (px - cx) / (ps * (cosRY || 1));
+        oy = ((py - cy) / ps - ox * sinRY * sinRX) / (cosRX || 1);
+        const z2 = oy * sinRX - ox * sinRY * cosRX;
+        ps = 300 / Math.max(1, 300 - z2);
+      }
       for (let i = 0; i < 6; i++) {
         const p = new Particle();
-        p.x = px + (Math.random() - 0.5) * 4;
-        p.y = py + (Math.random() - 0.5) * 4;
-        p.sx = p.x;
-        p.sy = p.y;
+        p.x = cx + ox + (Math.random() - 0.5) * 4;
+        p.y = cy + oy + (Math.random() - 0.5) * 4;
+        p.baseZ = 0;
+        p.z = 0;
+        p.sx = px;
+        p.sy = py;
         p.vx = (Math.random() - 0.5) * 0.3;
         p.vy = (Math.random() - 0.5) * 0.3;
         particles.push(p);
       }
-      while (particles.length > Math.round(targetCount() * 1.2)) particles.shift();
+      while (particles.length > Math.round(targetCount() * 1.1)) particles.shift();
     });
   }
 
