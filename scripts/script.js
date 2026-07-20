@@ -77,6 +77,8 @@ window.initParticles2D = function () {
   let particles = [];
   let mouse = { x: null, y: null };
   let rafId;
+  let isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+  window.__particlesSetTheme = function (theme) { isDark = theme !== 'light'; };
   let rotX = 0, rotY = 0;
   let cosRY = 1, sinRY = 0, cosRX = 1, sinRX = 0;
   let overflowPx = 150;
@@ -185,6 +187,7 @@ window.initParticles2D = function () {
     this.phase = Math.random() * Math.PI * 2;
     this.sx = this.x;
     this.sy = this.y;
+    this.secondary = Math.random() < 0.3;
   }
 
   Particle.prototype.update = function () {
@@ -254,7 +257,9 @@ window.initParticles2D = function () {
     alpha *= depthFactor;
     ctx.beginPath();
     ctx.arc(this.sx, this.sy, Math.max(0.1, r), 0, Math.PI * 2);
-    ctx.fillStyle = `rgba(190,21,73,${alpha})`;
+    ctx.fillStyle = this.secondary
+      ? isDark ? `rgba(255,255,255,${alpha})` : `rgba(25,25,25,${alpha})`
+      : `rgba(190,21,73,${alpha})`;
     ctx.fill();
   };
 
