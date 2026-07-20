@@ -77,6 +77,9 @@ window.initParticles2D = function () {
   let particles = [];
   let mouse = { x: null, y: null };
   let rafId;
+  let rotX = 0, rotY = 0;
+  let cosRY = 1, sinRY = 0, cosRX = 1, sinRX = 0;
+  let overflowPx = 150;
 
   const BASE_CHARS = 7;
   const FORM_HOLD_MS = 2200;
@@ -91,7 +94,7 @@ window.initParticles2D = function () {
   let waveX = null;
 
   function targetCount() {
-    return window.innerWidth < 768 ? 100 : 300;
+    return window.innerWidth < 768 ? 200 : 500;
   }
 
   function resize() {
@@ -99,6 +102,7 @@ window.initParticles2D = function () {
     const oldH = canvas.height;
     canvas.width = canvas.offsetWidth;
     canvas.height = canvas.offsetHeight;
+    overflowPx = Math.round(canvas.width * 0.12);
     if (oldW && oldH && (oldW !== canvas.width || oldH !== canvas.height)) {
       const sx = canvas.width / oldW;
       const sy = canvas.height / oldH;
@@ -129,11 +133,16 @@ window.initParticles2D = function () {
   }
 
   function Particle() {
-    this.x = Math.random() * canvas.width;
-    this.y = Math.random() * canvas.height;
+    this.x = -overflowPx + Math.random() * (canvas.width + 2 * overflowPx);
+    this.y = -overflowPx + Math.random() * (canvas.height + 2 * overflowPx);
     this.vx = (Math.random() - 0.5) * 0.45;
     this.vy = (Math.random() - 0.5) * 0.45;
     this.r = Math.random() * 1.5 + 0.8;
+    this.baseZ = (Math.random() - 0.5) * 80;
+    this.z = this.baseZ;
+    this.phase = Math.random() * Math.PI * 2;
+    this.sx = this.x;
+    this.sy = this.y;
   }
 
   Particle.prototype.update = function () {
@@ -145,16 +154,18 @@ window.initParticles2D = function () {
       this.x = u * u * this.start.x + 2 * u * e * this.ctrl.x + e * e * this.target.x;
       this.y = u * u * this.start.y + 2 * u * e * this.ctrl.y + e * e * this.target.y;
       this.arrived = t >= 1;
+      this.z = this.baseZ * (1 - e);
       return;
     }
     if (formationPhase === 'disperse' && this.target) {
       this.x += (this.target.x - this.x) * 0.07;
       this.y += (this.target.y - this.y) * 0.07;
+      this.z += (this.baseZ - this.z) * 0.07;
       return;
     }
     if (mouse.x !== null) {
-      const dx = mouse.x - this.x;
-      const dy = mouse.y - this.y;
+      const dx = mouse.x - this.sx;
+      const dy = mouse.y - this.sy;
       const d = Math.sqrt(dx * dx + dy * dy);
       if (d < MOUSE_DIST) {
         const f = (MOUSE_DIST - d) / MOUSE_DIST;
@@ -166,18 +177,30 @@ window.initParticles2D = function () {
     this.vy *= 0.98;
     this.x += this.vx;
     this.y += this.vy;
-    if (this.x < 0 || this.x > canvas.width) this.vx *= -1;
-    if (this.y < 0 || this.y > canvas.height) this.vy *= -1;
+    if (this.x < -overflowPx || this.x > canvas.width + overflowPx) this.vx *= -1;
+    if (this.y < -overflowPx || this.y > canvas.height + overflowPx) this.vy *= -1;
+    this.z = this.baseZ + Math.sin(performance.now() / 800 + this.phase) * 12;
   };
 
   Particle.prototype.draw = function () {
+    const cx = canvas.width  / 2;
+    const cy = canvas.height / 2;
+    const ox = this.x - cx;
+    const oy = this.y - cy;
+    const x1 = ox * cosRY + this.z * sinRY;
+    const z1 = -ox * sinRY + this.z * cosRY;
+    const y2 = oy * cosRX - z1 * sinRX;
+    const z2 = oy * sinRX + z1 * cosRX;
+    const pScale = 300 / Math.max(1, 300 - z2);
+    this.sx = cx + x1 * pScale;
+    this.sy = cy + y2 * pScale;
     let alpha = 0.65;
-    let r = this.r;
+    let r = this.r * pScale;
     if (formationPhase === 'form' && this.arrived) {
       alpha = 0.95;
       r += 0.6;
       if (waveX !== null) {
-        const d = Math.abs(this.x - waveX);
+        const d = Math.abs(this.sx - waveX);
         if (d < 120) {
           const b = 1 - d / 120;
           alpha = Math.min(1, alpha + b * 0.05);
@@ -185,8 +208,10 @@ window.initParticles2D = function () {
         }
       }
     }
+    const depthFactor = Math.min(1.0, Math.max(0.6, 0.6 + 0.4 * ((z2 + 60) / 120)));
+    alpha *= depthFactor;
     ctx.beginPath();
-    ctx.arc(this.x, this.y, r, 0, Math.PI * 2);
+    ctx.arc(this.sx, this.sy, Math.max(0.1, r), 0, Math.PI * 2);
     ctx.fillStyle = `rgba(190,21,73,${alpha})`;
     ctx.fill();
   };
@@ -265,14 +290,14 @@ window.initParticles2D = function () {
   function connect() {
     for (let i = 0; i < particles.length; i++) {
       for (let j = i + 1; j < particles.length; j++) {
-        const dx = particles[i].x - particles[j].x;
-        const dy = particles[i].y - particles[j].y;
+        const dx = particles[i].sx - particles[j].sx;
+        const dy = particles[i].sy - particles[j].sy;
         const d = Math.sqrt(dx * dx + dy * dy);
         if (d < CONNECT_DIST) {
           const a = (1 - d / CONNECT_DIST) * 0.35;
           ctx.beginPath();
-          ctx.moveTo(particles[i].x, particles[i].y);
-          ctx.lineTo(particles[j].x, particles[j].y);
+          ctx.moveTo(particles[i].sx, particles[i].sy);
+          ctx.lineTo(particles[j].sx, particles[j].sy);
           ctx.strokeStyle = `rgba(190,21,73,${a})`;
           ctx.lineWidth = 0.5;
           ctx.stroke();
@@ -293,6 +318,12 @@ window.initParticles2D = function () {
         releaseFormation();
       }
     }
+    const targetRotY = mouse.x !== null ? (mouse.x / canvas.width  - 0.5) * 0.25 : 0;
+    const targetRotX = mouse.y !== null ? (mouse.y / canvas.height - 0.5) * 0.15 : 0;
+    rotY += (targetRotY - rotY) * 0.05;
+    rotX += (targetRotX - rotX) * 0.05;
+    cosRY = Math.cos(rotY); sinRY = Math.sin(rotY);
+    cosRX = Math.cos(rotX); sinRX = Math.sin(rotX);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     particles.forEach(p => { p.update(); p.draw(); });
     connect();
@@ -782,15 +813,21 @@ setTimeout(() => {
     input.blur();
   }
 
+  function reset() {
+    output.innerHTML = '';
+    history.length = 0;
+    historyIdx = -1;
+    booted = false;
+    if (ghost) ghost.textContent = '';
+    suggestion = null;
+    input.value = '';
+  }
+
   const dotClose = document.querySelector('.dot-close');
   const dotMin   = document.querySelector('.dot-min');
   const dotMax   = document.querySelector('.dot-max');
-  if (dotClose) dotClose.addEventListener('click', close);
-  if (dotMin) dotMin.addEventListener('click', () => {
-    win.classList.remove('fullscreen');
-    win.classList.toggle('minimized');
-    if (!win.classList.contains('minimized')) input.focus();
-  });
+  if (dotClose) dotClose.addEventListener('click', () => { reset(); close(); });
+  if (dotMin) dotMin.addEventListener('click', close);
   if (dotMax) dotMax.addEventListener('click', () => {
     win.classList.remove('minimized');
     win.classList.toggle('fullscreen');
