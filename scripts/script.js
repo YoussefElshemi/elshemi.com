@@ -57,16 +57,20 @@
   function tick() {
     rx += (mx - rx) * 0.15;
     ry += (my - ry) * 0.15;
-    ring.style.transform = `translate(${rx - 16}px, ${ry - 16}px)`;
+    const half = ring.offsetWidth / 2;
+    ring.style.transform = `translate(${rx - half}px, ${ry - half}px)`;
     requestAnimationFrame(tick);
   }
   tick();
 })();
 
-(function () {
+window.initParticles2D = function () {
+  if (window.__particles2DStarted) return;
+  window.__particles2DStarted = true;
   const canvas = document.getElementById('particle-canvas');
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
+  if (!ctx) return;
 
   const CONNECT_DIST = 100;
   const MOUSE_DIST = 150;
@@ -296,7 +300,11 @@
   }
   loop();
   formParticles();
-})();
+};
+
+setTimeout(() => {
+  if (!window.__particlesActive) window.initParticles2D();
+}, 150);
 
 (function () {
   const headlineEl = document.getElementById('hero-headline');
@@ -363,7 +371,14 @@
   const revealObs = new IntersectionObserver(entries => {
     entries.forEach(e => {
       if (e.isIntersecting) {
+        const children = Array.from(e.target.children);
+        children.forEach((child, i) => {
+          child.style.transitionDelay = `${i * 80}ms`;
+        });
         e.target.classList.add('visible');
+        setTimeout(() => {
+          children.forEach(child => { child.style.transitionDelay = ''; });
+        }, children.length * 80 + 900);
         revealObs.unobserve(e.target);
       }
     });
@@ -552,7 +567,7 @@
   function update() {
     const p = Math.min(window.scrollY / 150, 1);
     nav.style.backdropFilter = `blur(${8 + p * 14}px)`;
-    nav.style.background = `rgba(13,13,13,${0.82 + p * 0.13})`;
+    nav.style.background = `rgba(var(--nav-bg-rgb), ${0.82 + p * 0.13})`;
   }
   window.addEventListener('scroll', update, { passive: true });
 })();
@@ -568,39 +583,60 @@
 })();
 
 (function () {
-  document.querySelectorAll('.timeline-card').forEach(card => {
-    card.addEventListener('mousemove', function (e) {
+  if (window.matchMedia('(hover: none)').matches) return;
+  document.querySelectorAll('[data-tilt]').forEach(el => {
+    const max = parseFloat(el.getAttribute('data-tilt-max')) || 8;
+    el.addEventListener('mousemove', function (e) {
       const r = this.getBoundingClientRect();
       const x = (e.clientX - r.left) / r.width - 0.5;
       const y = (e.clientY - r.top) / r.height - 0.5;
-      this.style.transform = `perspective(700px) rotateY(${x * 14}deg) rotateX(${-y * 9}deg) scale(1.025)`;
       this.style.transition = 'transform 0.08s ease';
-      this.style.borderColor = 'rgba(190,21,73,0.45)';
+      this.style.transform = `perspective(700px) rotateY(${x * max}deg) rotateX(${-y * max * 0.65}deg) scale(1.02)`;
+      this.style.setProperty('--glare-x', `${(x + 0.5) * 100}%`);
+      this.style.setProperty('--glare-y', `${(y + 0.5) * 100}%`);
     });
-    card.addEventListener('mouseleave', function () {
-      this.style.transition = 'transform 0.5s cubic-bezier(0.23,1,0.32,1), border-color 0.3s';
+    el.addEventListener('mouseleave', function () {
+      this.style.transition = 'transform 0.5s cubic-bezier(0.23, 1, 0.32, 1)';
       this.style.transform = 'perspective(700px) rotateY(0deg) rotateX(0deg) scale(1)';
-      this.style.borderColor = '';
     });
   });
 })();
 
 (function () {
-  document.querySelectorAll('.btn, .contact-link').forEach(btn => {
-    btn.addEventListener('mouseenter', function () {
-      this.style.transition = 'transform 0.1s ease, background 0.2s, color 0.2s';
+  if (window.matchMedia('(hover: none)').matches) return;
+  const els = Array.from(document.querySelectorAll('[data-magnetic]'));
+  if (!els.length) return;
+  const ring = document.getElementById('cursor-ring');
+  const state = els.map(el => ({ el, s: parseFloat(el.getAttribute('data-magnetic')) || 0.3, active: false }));
+  let hoverCount = 0;
+
+  window.addEventListener('mousemove', e => {
+    state.forEach(item => {
+      const r = item.el.getBoundingClientRect();
+      const cx = r.left + r.width / 2;
+      const cy = r.top + r.height / 2;
+      const dx = e.clientX - cx;
+      const dy = e.clientY - cy;
+      const zone = Math.max(r.width, r.height) / 2 + 70;
+      const d = Math.sqrt(dx * dx + dy * dy);
+      if (d < zone) {
+        if (!item.active) {
+          item.active = true;
+          item.el.style.transition = 'transform 0.12s ease-out, background 0.2s, color 0.2s, border-color 0.2s, box-shadow 0.2s';
+          hoverCount++;
+          if (ring) ring.classList.add('magnet-hover');
+        }
+        const f = 1 - d / zone;
+        item.el.style.transform = `translate(${dx * f * item.s}px, ${dy * f * item.s}px)`;
+      } else if (item.active) {
+        item.active = false;
+        hoverCount = Math.max(0, hoverCount - 1);
+        if (ring && hoverCount === 0) ring.classList.remove('magnet-hover');
+        item.el.style.transition = 'transform 0.5s cubic-bezier(0.23, 1, 0.32, 1), background 0.2s, color 0.2s, border-color 0.2s, box-shadow 0.2s';
+        item.el.style.transform = 'translate(0, 0)';
+      }
     });
-    btn.addEventListener('mousemove', function (e) {
-      const r = this.getBoundingClientRect();
-      const dx = e.clientX - (r.left + r.width / 2);
-      const dy = e.clientY - (r.top + r.height / 2);
-      this.style.transform = `translate(${dx * 0.28}px, ${dy * 0.38}px)`;
-    });
-    btn.addEventListener('mouseleave', function () {
-      this.style.transition = 'transform 0.5s cubic-bezier(0.23,1,0.32,1), background 0.2s, color 0.2s';
-      this.style.transform = 'translate(0,0)';
-    });
-  });
+  }, { passive: true });
 })();
 
 (function () {
@@ -640,7 +676,7 @@
   let booted = false;
 
   const ghost = document.getElementById('terminal-ghost');
-  const CMD_NAMES = ['clear', 'contact', 'exit', 'experience', 'help', 'particles', 'skills', 'sudo', 'whoami'];
+  const CMD_NAMES = ['clear', 'contact', 'exit', 'experience', 'help', 'particles', 'skills', 'sudo', 'theme', 'whoami'];
   let suggestion = null;
 
   function updateGhost() {
@@ -664,6 +700,7 @@
       '  skills       what I work with',
       '  contact      how to reach me',
       '  particles    re-run the hero animation',
+      '  theme        switch light/dark mode',
       '  clear        clear the screen',
       '  exit         close the terminal'
     ].join('\n'),
@@ -724,8 +761,11 @@
     window.visualViewport.addEventListener('scroll', fitOverlay);
   }
 
+  const win = document.getElementById('terminal-window');
+
   function open() {
     overlay.hidden = false;
+    win.classList.remove('minimized');
     fitOverlay();
     if (!booted) {
       booted = true;
@@ -738,8 +778,24 @@
     overlay.hidden = true;
     overlay.style.top = '';
     overlay.style.height = '';
+    win.classList.remove('minimized', 'fullscreen');
     input.blur();
   }
+
+  const dotClose = document.querySelector('.dot-close');
+  const dotMin   = document.querySelector('.dot-min');
+  const dotMax   = document.querySelector('.dot-max');
+  if (dotClose) dotClose.addEventListener('click', close);
+  if (dotMin) dotMin.addEventListener('click', () => {
+    win.classList.remove('fullscreen');
+    win.classList.toggle('minimized');
+    if (!win.classList.contains('minimized')) input.focus();
+  });
+  if (dotMax) dotMax.addEventListener('click', () => {
+    win.classList.remove('minimized');
+    win.classList.toggle('fullscreen');
+    input.focus();
+  });
 
   function run(raw) {
     const cmd = raw.trim();
@@ -754,6 +810,19 @@
       close();
       window.smoothScrollTo(0, 600);
       setTimeout(() => { if (window.formParticles) window.formParticles(); }, 650);
+      return;
+    }
+    if (name === 'theme') {
+      const arg = (cmd.split(/\s+/)[1] || '').toLowerCase();
+      const current = document.documentElement.getAttribute('data-theme') || 'dark';
+      if (arg === 'light' || arg === 'dark') {
+        if (window.__applyTheme) window.__applyTheme(arg);
+        print('<span class="t-muted">theme set to ' + arg + '</span>');
+      } else if (!arg) {
+        print('<span class="t-muted">current theme: ' + current + ' — usage: theme light|dark</span>');
+      } else {
+        print('<span class="t-muted">usage: theme light|dark</span>');
+      }
       return;
     }
     if (COMMANDS[name]) { print(COMMANDS[name]); return; }
@@ -801,6 +870,28 @@
       open();
     } else if (e.key === 'Escape' && !overlay.hidden) {
       close();
+    }
+  });
+})();
+
+(function () {
+  const btn = document.getElementById('theme-toggle');
+  function apply(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    if (window.__particlesSetTheme) window.__particlesSetTheme(theme);
+    try { localStorage.setItem('theme', theme); } catch (e) {}
+  }
+  window.__applyTheme = apply;
+  if (!btn) return;
+  btn.addEventListener('click', () => {
+    const next = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+    if (document.startViewTransition) {
+      const r = btn.getBoundingClientRect();
+      document.documentElement.style.setProperty('--vt-x', (r.left + r.width / 2) + 'px');
+      document.documentElement.style.setProperty('--vt-y', (r.top + r.height / 2) + 'px');
+      document.startViewTransition(() => apply(next));
+    } else {
+      apply(next);
     }
   });
 })();
