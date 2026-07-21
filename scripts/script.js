@@ -474,6 +474,25 @@ setTimeout(() => {
   }, { threshold: 0.15 });
   document.querySelectorAll('.reveal').forEach(el => revealObs.observe(el));
 
+  const twObs = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (!e.isIntersecting) return;
+      const el = e.target;
+      const text = el.dataset.typewriter;
+      let i = 0;
+      el.textContent = '';
+      el.classList.add('tw-typing');
+      const tick = () => {
+        el.textContent = text.slice(0, ++i);
+        if (i < text.length) setTimeout(tick, 55);
+        else el.classList.remove('tw-typing');
+      };
+      setTimeout(tick, 200);
+      twObs.unobserve(el);
+    });
+  }, { threshold: 0.5 });
+  document.querySelectorAll('[data-typewriter]').forEach(el => twObs.observe(el));
+
   const cardObs = new IntersectionObserver(entries => {
     entries.forEach(e => {
       if (e.isIntersecting) {

@@ -208,6 +208,17 @@ nav {
   text-align: center;
 }
 
+.section-label.tw-typing::after {
+  content: '|';
+  color: var(--accent);
+  animation: tw-blink 0.7s step-end infinite;
+}
+
+@keyframes tw-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
 .section-title {
   font-size: 2rem;
   font-weight: 700;
