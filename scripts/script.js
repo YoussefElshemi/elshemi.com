@@ -760,8 +760,9 @@ setTimeout(() => {
   const toggle = document.getElementById('terminal-toggle');
   if (!overlay || !output || !input || !toggle) return;
 
-  const history = [];
-  let historyIdx = -1;
+  const HISTORY_KEY = 'terminal_history';
+  const history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+  let historyIdx = history.length;
   let booted = false;
 
   const ghost = document.getElementById('terminal-ghost');
@@ -1236,7 +1237,7 @@ setTimeout(() => {
     } else if (e.key === 'Enter') {
       cycleMatches = []; cycleIdx = -1;
       const val = input.value;
-      if (val.trim()) { history.push(val); }
+      if (val.trim()) { history.push(val); localStorage.setItem(HISTORY_KEY, JSON.stringify(history)); }
       historyIdx = history.length;
       input.value = '';
       updateGhost();
