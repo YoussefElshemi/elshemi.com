@@ -1,0 +1,114 @@
+.error-wrap {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 6rem 2rem 2rem;
+}
+
+.error-code {
+  font-family: var(--font-mono);
+  font-size: clamp(5rem, 18vw, 9rem);
+  font-weight: 700;
+  color: var(--accent);
+  line-height: 1;
+  margin-bottom: 1.5rem;
+  animation: glitch 2.5s steps(1, end) infinite;
+}
+
+.error-text {
+  color: var(--text-muted);
+  margin-bottom: 1.5rem;
+}
+
+.game-wrap {
+  margin: 0 0 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.game-canvas-wrap {
+  position: relative;
+  display: inline-block;
+  line-height: 0;
+}
+
+#snake-canvas {
+  border: 1px solid var(--border-soft);
+  display: block;
+  image-rendering: pixelated;
+}
+
+.snake-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.snake-over-score {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  letter-spacing: 0.05em;
+}
+
+.snake-action-btn {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  padding: 0.45rem 1.25rem;
+  border: 1.5px solid var(--accent);
+  color: var(--accent);
+  background: transparent;
+  cursor: pointer;
+  letter-spacing: 0.05em;
+  transition: background 0.15s, color 0.15s;
+}
+
+.snake-action-btn:hover { background: var(--accent); color: var(--bg); }
+
+.snake-dpad {
+  display: grid;
+  grid-template-areas: ". up ." "left . right" ". down .";
+  grid-template-columns: 44px 44px 44px;
+  grid-template-rows: 44px 44px 44px;
+  gap: 4px;
+}
+
+.dpad-btn {
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--border-soft);
+  background: var(--surface);
+  color: var(--text-muted);
+  font-size: 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+.dpad-btn:active { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+
+#dpad-up    { grid-area: up; }
+#dpad-down  { grid-area: down; }
+#dpad-left  { grid-area: left; }
+#dpad-right { grid-area: right; }
+
+.game-hint {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  letter-spacing: 0.05em;
+}

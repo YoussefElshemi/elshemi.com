@@ -19,33 +19,13 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
   <link rel="icon" type="image/svg+xml" href="img/favicon.svg">
   <link rel="stylesheet" href="css/styles.css" onerror="this.onerror=null;this.href='/css/styles.css'">
-  <style>
-    body { cursor: auto; }
-    .error-wrap {
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-      padding: 6rem 2rem 2rem;
-    }
-    .error-code {
-      font-family: var(--font-mono);
-      font-size: clamp(5rem, 18vw, 9rem);
-      font-weight: 700;
-      color: var(--accent);
-      line-height: 1;
-      margin-bottom: 1.5rem;
-      animation: glitch 2.5s steps(1, end) infinite;
-    }
-    .error-text {
-      color: var(--text-muted);
-      margin-bottom: 2.5rem;
-    }
-  </style>
+  <link rel="stylesheet" href="css/404.css">
 </head>
 <body>
+
+  <canvas id="particle-canvas"></canvas>
+  <div class="cursor-dot" id="cursor-dot"></div>
+  <div class="cursor-ring" id="cursor-ring"></div>
 
   <nav>
     <a href="/" class="nav-logo">Youssef Elshemi</a>
@@ -55,12 +35,32 @@
     <p class="section-label">// page not found</p>
     <h1 class="error-code">404</h1>
     <p class="error-text">This route doesn't resolve. The page you're looking for doesn't exist or has moved.</p>
+    <div class="game-wrap">
+      <div class="game-canvas-wrap">
+        <canvas id="snake-canvas" width="280" height="280"></canvas>
+        <div id="snake-overlay" class="snake-overlay">
+          <span id="snake-over-score" class="snake-over-score" style="display:none"></span>
+          <button id="snake-action-btn" class="snake-action-btn" onclick="window.__snakeAction&&window.__snakeAction()">&#x25B6; start</button>
+        </div>
+      </div>
+      <div class="snake-dpad">
+        <button class="dpad-btn" id="dpad-up">↑</button>
+        <button class="dpad-btn" id="dpad-left">←</button>
+        <button class="dpad-btn" id="dpad-right">→</button>
+        <button class="dpad-btn" id="dpad-down">↓</button>
+      </div>
+      <p class="game-hint">d-pad &nbsp;·&nbsp; swipe &nbsp;·&nbsp; arrow keys</p>
+    </div>
     <a href="/" class="btn">Back to Home</a>
   </main>
 
   <footer>
     <span>© 2026 Youssef Elshemi</span>
   </footer>
+
+  <script src="scripts/cursor.js"></script>
+  <script src="scripts/particles.js"></script>
+  <script src="scripts/404.js"></script>
 
 </body>
 </html>
