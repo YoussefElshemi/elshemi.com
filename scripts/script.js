@@ -791,11 +791,15 @@ setTimeout(() => {
         'Location:   London, UK',
         'Languages:  C#, Python, TypeScript',
       ];
-      const infoStart = 3;
-      print(logo.map((l, i) => {
-        const infoIdx = i - infoStart;
-        return a + l + z + (infoIdx >= 0 && infoIdx < info.length ? '   ' + info[infoIdx] : '');
-      }).join('\n'));
+      if (window.innerWidth < 768) {
+        print(info.join('\n'));
+      } else {
+        const infoStart = 3;
+        print(logo.map((l, i) => {
+          const infoIdx = i - infoStart;
+          return a + l + z + (infoIdx >= 0 && infoIdx < info.length ? '   ' + info[infoIdx] : '');
+        }).join('\n'));
+      }
       return;
     }
     if (name === 'man') {
