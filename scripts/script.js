@@ -1144,7 +1144,7 @@ setTimeout(() => {
         div.innerHTML = line.html;
         output.appendChild(div);
         output.scrollTop = output.scrollHeight;
-        if (i === LINES.length - 1) { active = false; if (termInput) termInput.disabled = false; }
+        if (i === LINES.length - 1) { active = false; if (termInput) { termInput.disabled = false; termInput.focus(); } }
       }, t);
       t += line.delay;
     });
