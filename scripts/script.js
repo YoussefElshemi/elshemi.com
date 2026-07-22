@@ -1154,3 +1154,10 @@ setTimeout(() => {
     });
   });
 })();
+
+(function () {
+  document.addEventListener('pointerdown', e => {
+    if (!e.target.closest('button, a, .palette-item, .section-dot, .terminal-dot')) return;
+    navigator.vibrate?.(10);
+  }, { passive: true });
+})();

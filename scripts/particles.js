@@ -114,6 +114,7 @@ window.initParticles = function (options) {
     vortex.x = e.clientX;
     vortex.y = e.clientY;
     vortex.active = true;
+    navigator.vibrate?.(10);
     vortex.start = performance.now();
     document.body.style.userSelect = 'none';
     document.body.style.webkitUserSelect = 'none';
