@@ -1091,3 +1091,62 @@ setTimeout(() => {
     }
   });
 })();
+
+(function () {
+  const SEQUENCE = ['ArrowUp','ArrowUp','ArrowDown','ArrowDown','ArrowLeft','ArrowRight','ArrowLeft','ArrowRight','b','a'];
+  const buf = [];
+  let active = false;
+
+  const LINES = [
+    { html: '$ ssh root@elshemi.com', delay: 400 },
+    { html: "root@elshemi.com's password: ••••••••••••", delay: 300 },
+    { html: 'Permission denied (publickey).', delay: 600 },
+    { html: '', delay: 200 },
+    { html: '$ sudo -s', delay: 400 },
+    { html: '[sudo] password for youssef: ••••••••••••', delay: 300 },
+    { html: 'youssef is not in the sudoers file. This incident will be reported.', delay: 600 },
+    { html: '', delay: 300 },
+    { html: '&gt; Attempting privilege escalation...', delay: 400 },
+    { html: '&gt; Bypassing auth layer...      [OK]', delay: 300 },
+    { html: '&gt; Injecting payload...         [OK]', delay: 300 },
+    { html: '<span class="t-accent">&gt; Root access granted.</span>', delay: 800 },
+    { html: '', delay: 200 },
+    { html: '<span class="t-accent">  ██╗  ██╗ █████╗  ██████╗██╗  ██╗███████╗██████╗ </span>', delay: 100 },
+    { html: '<span class="t-accent">  ██║  ██║██╔══██╗██╔════╝██║ ██╔╝██╔════╝██╔══██╗</span>', delay: 100 },
+    { html: '<span class="t-accent">  ███████║███████║██║     █████╔╝ █████╗  ██║  ██║</span>', delay: 100 },
+    { html: '<span class="t-accent">  ██╔══██║██╔══██║██║     ██╔═██╗ ██╔══╝  ██║  ██║</span>', delay: 100 },
+    { html: '<span class="t-accent">  ██║  ██║██║  ██║╚██████╗██║  ██╗███████╗██████╔╝</span>', delay: 100 },
+    { html: '<span class="t-accent">  ╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝╚══════╝╚═════╝ </span>', delay: 300 },
+    { html: '', delay: 150 },
+    { html: '<span class="t-muted">// nice one. you found the easter egg.</span>', delay: 150 },
+    { html: '<span class="t-muted">// ↑↑↓↓←→←→BA — a classic.</span>', delay: 150 },
+    { html: '<span class="t-muted">// type <span class="t-accent">help</span> if you actually want something.</span>', delay: 0 },
+  ];
+
+  document.addEventListener('keydown', function (e) {
+    const el = document.activeElement;
+    if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA')) return;
+    buf.push(e.key);
+    if (buf.length > SEQUENCE.length) buf.shift();
+    if (active || buf.length < SEQUENCE.length) return;
+    if (buf.join(',') !== SEQUENCE.join(',')) return;
+    buf.length = 0;
+    active = true;
+    if (typeof window.__terminalOpen !== 'function') { active = false; return; }
+    window.__terminalOpen();
+    const output = document.getElementById('terminal-output');
+    const termInput = document.getElementById('terminal-input');
+    if (termInput) termInput.disabled = true;
+    let t = 300;
+    LINES.forEach(function (line, i) {
+      setTimeout(function () {
+        const div = document.createElement('div');
+        div.innerHTML = line.html;
+        output.appendChild(div);
+        output.scrollTop = output.scrollHeight;
+        if (i === LINES.length - 1) { active = false; if (termInput) termInput.disabled = false; }
+      }, t);
+      t += line.delay;
+    });
+  });
+})();
