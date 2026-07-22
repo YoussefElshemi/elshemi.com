@@ -101,11 +101,16 @@ window.initParticles = function (options) {
   document.addEventListener('touchmove', e => {
     mouse.x = e.touches[0].clientX;
     mouse.y = e.touches[0].clientY;
+    if (vortex.active) {
+      vortex.x = e.touches[0].clientX;
+      vortex.y = e.touches[0].clientY;
+    }
   }, { passive: true });
   document.addEventListener('touchend', () => { mouse.x = null; mouse.y = null; });
   document.addEventListener('pointerdown', e => {
     if (vortexPointerId !== null) return;
     if (e.target.closest('a, button, input, textarea, select')) return;
+    e.preventDefault();
     vortexPointerId = e.pointerId;
     vortex.x = e.clientX;
     vortex.y = e.clientY;
@@ -138,6 +143,18 @@ window.initParticles = function (options) {
     if (e.pointerId !== vortexPointerId) return;
     vortex.active = false;
     vortexPointerId = null;
+    if (formationPhase === null) {
+      particles.forEach(p => {
+        const dx = p.sx - vortex.x;
+        const dy = p.sy - vortex.y;
+        const d = Math.sqrt(dx * dx + dy * dy);
+        if (d > 0 && d < VORTEX_RADIUS) {
+          const f = (VORTEX_RADIUS - d) / VORTEX_RADIUS;
+          p.vx += (dx / d) * VORTEX_K_BURST * f;
+          p.vy += (dy / d) * VORTEX_K_BURST * f;
+        }
+      });
+    }
   });
   document.addEventListener('click', e => {
     const r = canvas.getBoundingClientRect();
