@@ -28,8 +28,9 @@ window.initParticles = function (options) {
   let cosRY = 1, sinRY = 0, cosRX = 1, sinRX = 0;
   let overflowPx = 150;
   const VORTEX_RADIUS = 250;
-  const VORTEX_K_R = 0.6;
-  const VORTEX_K_T = 1.2;
+  const VORTEX_K_R = 1.5;
+  const VORTEX_K_T = 0.2;
+  const VORTEX_K_BURST = 6;
   const RING_PERIOD = 800;
   let vortex = { x: 0, y: 0, active: false, start: 0 };
   let vortexPointerId = null;
@@ -120,6 +121,18 @@ window.initParticles = function (options) {
     if (e.pointerId !== vortexPointerId) return;
     vortex.active = false;
     vortexPointerId = null;
+    if (formationPhase === null) {
+      particles.forEach(p => {
+        const dx = p.sx - vortex.x;
+        const dy = p.sy - vortex.y;
+        const d = Math.sqrt(dx * dx + dy * dy);
+        if (d > 0 && d < VORTEX_RADIUS) {
+          const f = (VORTEX_RADIUS - d) / VORTEX_RADIUS;
+          p.vx += (dx / d) * VORTEX_K_BURST * f;
+          p.vy += (dy / d) * VORTEX_K_BURST * f;
+        }
+      });
+    }
   });
   document.addEventListener('pointercancel', e => {
     if (e.pointerId !== vortexPointerId) return;
