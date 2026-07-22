@@ -115,6 +115,8 @@ window.initParticles = function (options) {
     vortex.y = e.clientY;
     vortex.active = true;
     vortex.start = performance.now();
+    document.body.style.userSelect = 'none';
+    document.body.style.webkitUserSelect = 'none';
   });
   document.addEventListener('pointermove', e => {
     if (e.pointerId !== vortexPointerId) return;
@@ -125,6 +127,8 @@ window.initParticles = function (options) {
     if (e.pointerId !== vortexPointerId) return;
     vortex.active = false;
     vortexPointerId = null;
+    document.body.style.userSelect = '';
+    document.body.style.webkitUserSelect = '';
     if (formationPhase === null) {
       particles.forEach(p => {
         const dx = p.sx - vortex.x;
@@ -142,6 +146,8 @@ window.initParticles = function (options) {
     if (e.pointerId !== vortexPointerId) return;
     vortex.active = false;
     vortexPointerId = null;
+    document.body.style.userSelect = '';
+    document.body.style.webkitUserSelect = '';
     if (formationPhase === null) {
       particles.forEach(p => {
         const dx = p.sx - vortex.x;
