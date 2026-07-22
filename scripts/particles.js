@@ -110,7 +110,6 @@ window.initParticles = function (options) {
   document.addEventListener('pointerdown', e => {
     if (vortexPointerId !== null) return;
     if (e.target.closest('a, button, input, textarea, select')) return;
-    e.preventDefault();
     vortexPointerId = e.pointerId;
     vortex.x = e.clientX;
     vortex.y = e.clientY;
