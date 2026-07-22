@@ -20,7 +20,9 @@
   --font-mono: 'Fira Code', monospace;
 }
 
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+
+#about, #experience { user-select: text; }
 
 html {
   scroll-behavior: smooth;
@@ -238,7 +240,9 @@ nav {
   border: 1px solid var(--border-subtle);
   border-radius: 12px;
   padding: 3rem;
+  transition: border-color 0.3s;
 }
+.about-inner:hover { border-color: rgba(var(--accent-rgb),0.45); }
 
 .hl {
   color: var(--accent);
