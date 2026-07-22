@@ -27,6 +27,12 @@ window.initParticles = function (options) {
   let rotX = 0, rotY = 0;
   let cosRY = 1, sinRY = 0, cosRX = 1, sinRX = 0;
   let overflowPx = 150;
+  const VORTEX_RADIUS = 250;
+  const VORTEX_K_R = 0.6;
+  const VORTEX_K_T = 1.2;
+  const RING_PERIOD = 800;
+  let vortex = { x: 0, y: 0, active: false, start: 0 };
+  let vortexPointerId = null;
 
   const BASE_CHARS = 7;
   const FORM_HOLD_MS = 2200;
@@ -96,6 +102,30 @@ window.initParticles = function (options) {
     mouse.y = e.touches[0].clientY;
   }, { passive: true });
   document.addEventListener('touchend', () => { mouse.x = null; mouse.y = null; });
+  document.addEventListener('pointerdown', e => {
+    if (vortexPointerId !== null) return;
+    if (e.target.closest('a, button, input, textarea, select')) return;
+    vortexPointerId = e.pointerId;
+    vortex.x = e.clientX;
+    vortex.y = e.clientY;
+    vortex.active = true;
+    vortex.start = performance.now();
+  });
+  document.addEventListener('pointermove', e => {
+    if (e.pointerId !== vortexPointerId) return;
+    vortex.x = e.clientX;
+    vortex.y = e.clientY;
+  });
+  document.addEventListener('pointerup', e => {
+    if (e.pointerId !== vortexPointerId) return;
+    vortex.active = false;
+    vortexPointerId = null;
+  });
+  document.addEventListener('pointercancel', e => {
+    if (e.pointerId !== vortexPointerId) return;
+    vortex.active = false;
+    vortexPointerId = null;
+  });
   document.addEventListener('click', e => {
     const r = canvas.getBoundingClientRect();
     const px = e.clientX - r.left;
@@ -164,6 +194,18 @@ window.initParticles = function (options) {
         const f = (MOUSE_DIST - d) / MOUSE_DIST;
         this.vx += (dx / d) * f * 0.5;
         this.vy += (dy / d) * f * 0.5;
+      }
+    }
+    if (vortex.active && formationPhase === null) {
+      const dx = vortex.x - this.sx;
+      const dy = vortex.y - this.sy;
+      const d = Math.sqrt(dx * dx + dy * dy);
+      if (d > 0 && d < VORTEX_RADIUS) {
+        const f = (VORTEX_RADIUS - d) / VORTEX_RADIUS;
+        this.vx += (dx / d) * VORTEX_K_R * f;
+        this.vy += (dy / d) * VORTEX_K_R * f;
+        this.vx += (dy / d) * VORTEX_K_T * f;
+        this.vy += (-dx / d) * VORTEX_K_T * f;
       }
     }
     this.vx *= 0.98;
@@ -318,6 +360,17 @@ window.initParticles = function (options) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     particles.forEach(p => { p.update(); p.draw(); });
     connect();
+    if (vortex.active) {
+      const now = performance.now();
+      for (let i = 0; i < 3; i++) {
+        const t = ((now - vortex.start + (RING_PERIOD / 3) * i) % RING_PERIOD) / RING_PERIOD;
+        ctx.beginPath();
+        ctx.arc(vortex.x, vortex.y, 20 + t * 100, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(190,21,73,${(0.5 * (1 - t)).toFixed(3)})`;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+    }
     requestAnimationFrame(loop);
   }
 
