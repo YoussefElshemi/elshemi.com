@@ -473,8 +473,9 @@ setTimeout(() => {
     const el = document.createElement('div');
     el.className = 'terminal-window';
     el.innerHTML = tpl.innerHTML;
-    const w = 520, h = 320;
+    const w = 640, h = 420;
     el.style.position = 'absolute';
+    el.style.transform = 'none';
     const overlayRect = overlay.getBoundingClientRect();
     const relX = x - overlayRect.left;
     const relY = y - overlayRect.top;
