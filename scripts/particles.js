@@ -114,7 +114,7 @@ window.initParticles = function (options) {
     vortex.x = e.clientX;
     vortex.y = e.clientY;
     vortex.active = true;
-    navigator.vibrate?.(10);
+    try { navigator.vibrate?.(10000); } catch (_) {}
     vortex.start = performance.now();
     document.body.style.userSelect = 'none';
     document.body.style.webkitUserSelect = 'none';
@@ -128,6 +128,7 @@ window.initParticles = function (options) {
     if (e.pointerId !== vortexPointerId) return;
     vortex.active = false;
     vortexPointerId = null;
+    try { navigator.vibrate?.(0); } catch (_) {}
     document.body.style.userSelect = '';
     document.body.style.webkitUserSelect = '';
     if (formationPhase === null) {
@@ -147,6 +148,7 @@ window.initParticles = function (options) {
     if (e.pointerId !== vortexPointerId) return;
     vortex.active = false;
     vortexPointerId = null;
+    try { navigator.vibrate?.(0); } catch (_) {}
     document.body.style.userSelect = '';
     document.body.style.webkitUserSelect = '';
     if (formationPhase === null) {

@@ -434,57 +434,90 @@ setTimeout(() => {
 
 (function () {
   const overlay = document.getElementById('terminal-overlay');
-  const output = document.getElementById('terminal-output');
   const input = document.getElementById('terminal-input');
   const toggle = document.getElementById('terminal-toggle');
-  if (!overlay || !output || !input || !toggle) return;
+  const win = document.getElementById('terminal-window');
+  const tabAdd = document.getElementById('terminal-tab-add');
+  const tabsEl = document.querySelector('.terminal-tabs');
+  if (!overlay || !input || !toggle || !win || !tabAdd || !tabsEl) return;
 
+  const MAX_TABS = 4;
   const HISTORY_KEY = 'terminal_history';
-  const history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
-  let historyIdx = history.length;
-  let booted = false;
-
   const ghost = document.getElementById('terminal-ghost');
   const CMD_NAMES = ['cat', 'cd', 'clear', 'contact', 'date', 'echo', 'exit', 'experience', 'help', 'ls', 'man', 'matrix', 'neofetch', 'particles', 'ping', 'pwd', 'skills', 'sudo', 'theme', 'uname', 'whoami'];
   let suggestion = null;
   let cycleMatches = [];
   let cycleIdx = -1;
   let activeMatrixTeardown = null;
+  let sessions = [];
+  let activeSession = null;
+  let nextId = 1;
 
-  function updateGhost() {
-    suggestion = null;
-    if (ghost) ghost.textContent = '';
-    const val = input.value;
-    if (!val) return;
-    const spaceIdx = val.indexOf(' ');
-    if (spaceIdx === -1) {
-      const match = CMD_NAMES.find(c => c.startsWith(val.toLowerCase()) && c !== val.toLowerCase());
-      if (match) {
-        suggestion = match;
-        if (ghost) ghost.textContent = val + match.slice(val.length);
-      }
-    } else {
-      const base = val.slice(0, spaceIdx).toLowerCase();
-      const arg = val.slice(spaceIdx + 1);
-      const ARG_COMPLETIONS = {
-        man: CMD_NAMES,
-        cd: ['about', 'contact', 'experience', 'skills', '..', '~'],
-        cat: ['about.txt', 'contact.txt', 'experience.txt', 'skills.txt'],
-        ls: ['-la'],
-        theme: ['dark', 'light'],
-        ping: ['elshemi.com']
-      };
-      const completions = ARG_COMPLETIONS[base];
-      if (completions) {
-        const match = completions.find(c => c.startsWith(arg.toLowerCase()) && c !== arg.toLowerCase());
-        if (match) {
-          suggestion = val.slice(0, spaceIdx + 1) + match;
-          if (ghost) ghost.textContent = suggestion;
-        }
-      }
-    }
+  function createSession() {
+    const name = nextId === 1 ? 'bash' : 'bash ' + nextId;
+    const stored = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+    const outputEl = document.createElement('div');
+    outputEl.className = 'terminal-output-pane';
+    outputEl.setAttribute('aria-live', 'polite');
+    outputEl.style.display = 'none';
+    win.insertBefore(outputEl, win.querySelector('.terminal-input-row'));
+    const session = { id: nextId++, name, outputEl, history: stored.slice(), historyIdx: stored.length, booted: false };
+    sessions.push(session);
+    return session;
   }
-  input.addEventListener('input', () => { cycleMatches = []; cycleIdx = -1; updateGhost(); });
+
+  function switchToSession(session) {
+    if (activeSession) activeSession.outputEl.style.display = 'none';
+    activeSession = session;
+    activeSession.outputEl.style.display = '';
+    renderTabBar();
+    input.focus();
+  }
+
+  function renderTabBar() {
+    tabsEl.querySelectorAll('.terminal-tab').forEach(function (el) { el.remove(); });
+    sessions.forEach(function (session) {
+      const tab = document.createElement('button');
+      tab.className = 'terminal-tab' + (session === activeSession ? ' active' : '');
+      tab.addEventListener('click', function () { if (session !== activeSession) switchToSession(session); });
+      const lbl = document.createElement('span');
+      lbl.className = 'terminal-tab-label';
+      lbl.textContent = session.name;
+      tab.appendChild(lbl);
+      if (sessions.length > 1) {
+        const x = document.createElement('span');
+        x.className = 'terminal-tab-close';
+        x.setAttribute('role', 'button');
+        x.setAttribute('tabindex', '0');
+        x.textContent = '×';
+        x.addEventListener('click', function (e) { e.stopPropagation(); closeSession(session); });
+        tab.appendChild(x);
+      }
+      tabsEl.insertBefore(tab, tabAdd);
+    });
+    tabAdd.style.display = sessions.length >= MAX_TABS ? 'none' : '';
+  }
+
+  function closeSession(session) {
+    if (sessions.length <= 1) return;
+    const idx = sessions.indexOf(session);
+    sessions.splice(idx, 1);
+    session.outputEl.remove();
+    switchToSession(sessions[Math.max(0, idx - 1)]);
+  }
+
+  tabAdd.addEventListener('click', function () {
+    if (sessions.length >= MAX_TABS) return;
+    const session = createSession();
+    switchToSession(session);
+    boot(session);
+  });
+
+  function boot(session) {
+    if (session.booted) return;
+    session.booted = true;
+    print('<span class="t-muted">elshemi.com terminal — type <span class="t-accent">help</span> to get started.</span>');
+  }
 
   const COMMANDS = {
     help: [
@@ -541,8 +574,8 @@ setTimeout(() => {
   function print(html) {
     const line = document.createElement('div');
     line.innerHTML = html;
-    output.appendChild(line);
-    output.scrollTop = output.scrollHeight;
+    activeSession.outputEl.appendChild(line);
+    activeSession.outputEl.scrollTop = activeSession.outputEl.scrollHeight;
   }
 
   function printEcho(cmd) {
@@ -552,9 +585,38 @@ setTimeout(() => {
     prompt.textContent = '$ ';
     line.appendChild(prompt);
     line.appendChild(document.createTextNode(cmd));
-    output.appendChild(line);
-    output.scrollTop = output.scrollHeight;
+    activeSession.outputEl.appendChild(line);
+    activeSession.outputEl.scrollTop = activeSession.outputEl.scrollHeight;
   }
+
+  function updateGhost() {
+    suggestion = null;
+    if (ghost) ghost.textContent = '';
+    const val = input.value;
+    if (!val) return;
+    const spaceIdx = val.indexOf(' ');
+    if (spaceIdx === -1) {
+      const match = CMD_NAMES.find(function (c) { return c.startsWith(val.toLowerCase()) && c !== val.toLowerCase(); });
+      if (match) { suggestion = match; if (ghost) ghost.textContent = val + match.slice(val.length); }
+    } else {
+      const base = val.slice(0, spaceIdx).toLowerCase();
+      const arg = val.slice(spaceIdx + 1);
+      const ARG_COMPLETIONS = {
+        man: CMD_NAMES,
+        cd: ['about', 'contact', 'experience', 'skills', '..', '~'],
+        cat: ['about.txt', 'contact.txt', 'experience.txt', 'skills.txt'],
+        ls: ['-la'],
+        theme: ['dark', 'light'],
+        ping: ['elshemi.com']
+      };
+      const completions = ARG_COMPLETIONS[base];
+      if (completions) {
+        const match = completions.find(function (c) { return c.startsWith(arg.toLowerCase()) && c !== arg.toLowerCase(); });
+        if (match) { suggestion = val.slice(0, spaceIdx + 1) + match; if (ghost) ghost.textContent = suggestion; }
+      }
+    }
+  }
+  input.addEventListener('input', function () { cycleMatches = []; cycleIdx = -1; updateGhost(); });
 
   function fitOverlay() {
     if (overlay.hidden || !window.visualViewport) return;
@@ -566,16 +628,15 @@ setTimeout(() => {
     window.visualViewport.addEventListener('scroll', fitOverlay);
   }
 
-  const win = document.getElementById('terminal-window');
-
   function open() {
     overlay.hidden = false;
     win.classList.remove('minimized');
     fitOverlay();
-    if (!booted) {
-      booted = true;
-      print('<span class="t-muted">elshemi.com terminal — type <span class="t-accent">help</span> to get started.</span>');
+    if (sessions.length === 0) {
+      const session = createSession();
+      switchToSession(session);
     }
+    boot(activeSession);
     input.focus();
   }
 
@@ -591,21 +652,21 @@ setTimeout(() => {
   }
 
   function reset() {
-    output.innerHTML = '';
-    history.length = 0;
-    historyIdx = -1;
-    booted = false;
+    sessions.forEach(function (s) { s.outputEl.remove(); });
+    sessions = [];
+    activeSession = null;
+    nextId = 1;
     if (ghost) ghost.textContent = '';
     suggestion = null;
     input.value = '';
   }
 
   const dotClose = document.querySelector('.dot-close');
-  const dotMin   = document.querySelector('.dot-min');
-  const dotMax   = document.querySelector('.dot-max');
-  if (dotClose) dotClose.addEventListener('click', e => { e.stopPropagation(); reset(); close(); });
-  if (dotMin)   dotMin.addEventListener('click',   e => { e.stopPropagation(); close(); });
-  if (dotMax)   dotMax.addEventListener('click',   e => {
+  const dotMin = document.querySelector('.dot-min');
+  const dotMax = document.querySelector('.dot-max');
+  if (dotClose) dotClose.addEventListener('click', function (e) { e.stopPropagation(); reset(); close(); });
+  if (dotMin) dotMin.addEventListener('click', function (e) { e.stopPropagation(); close(); });
+  if (dotMax) dotMax.addEventListener('click', function (e) {
     e.stopPropagation();
     win.classList.remove('minimized');
     win.classList.toggle('fullscreen');
@@ -616,41 +677,37 @@ setTimeout(() => {
   if (titlebar) {
     let dragStartX, dragStartY, dragOrigLeft, dragOrigTop;
 
-    titlebar.addEventListener('pointerdown', e => {
+    titlebar.addEventListener('pointerdown', function (e) {
       if (win.classList.contains('fullscreen')) return;
-      if (e.target.classList.contains('terminal-dot')) return;
+      if (e.target.classList.contains('terminal-dot') ||
+          e.target.classList.contains('terminal-tab') ||
+          e.target.classList.contains('terminal-tab-close') ||
+          e.target.classList.contains('terminal-tab-label') ||
+          e.target.id === 'terminal-tab-add') return;
 
       const overlayRect = overlay.getBoundingClientRect();
       const winRect = win.getBoundingClientRect();
-
       dragStartX = e.clientX;
       dragStartY = e.clientY;
       dragOrigLeft = winRect.left - overlayRect.left;
-      dragOrigTop  = winRect.top  - overlayRect.top;
-
+      dragOrigTop = winRect.top - overlayRect.top;
       win.style.transform = 'none';
       win.style.left = dragOrigLeft + 'px';
-      win.style.top  = dragOrigTop  + 'px';
-
+      win.style.top = dragOrigTop + 'px';
       titlebar.setPointerCapture(e.pointerId);
     });
 
-    titlebar.addEventListener('pointermove', e => {
+    titlebar.addEventListener('pointermove', function (e) {
       if (!titlebar.hasPointerCapture(e.pointerId)) return;
-
       const overlayRect = overlay.getBoundingClientRect();
       const winRect = win.getBoundingClientRect();
-      const maxLeft = overlayRect.width  - winRect.width;
-      const maxTop  = overlayRect.height - winRect.height;
-
-      const newLeft = Math.min(Math.max(0, dragOrigLeft + (e.clientX - dragStartX)), maxLeft);
-      const newTop  = Math.min(Math.max(0, dragOrigTop  + (e.clientY - dragStartY)), maxTop);
-
-      win.style.left = newLeft + 'px';
-      win.style.top  = newTop  + 'px';
+      const maxLeft = overlayRect.width - winRect.width;
+      const maxTop = overlayRect.height - winRect.height;
+      win.style.left = Math.min(Math.max(0, dragOrigLeft + (e.clientX - dragStartX)), maxLeft) + 'px';
+      win.style.top = Math.min(Math.max(0, dragOrigTop + (e.clientY - dragStartY)), maxTop) + 'px';
     });
 
-    titlebar.addEventListener('pointerup', e => {
+    titlebar.addEventListener('pointerup', function (e) {
       titlebar.releasePointerCapture(e.pointerId);
     });
   }
@@ -661,14 +718,14 @@ setTimeout(() => {
     printEcho(cmd);
     if (!cmd) return;
     const name = cmd.split(/\s+/)[0].toLowerCase();
-    if (name === 'clear') { output.innerHTML = ''; return; }
-    if (name === 'exit') { close(); return; }
-    if (name === 'sudo') { print('youssef is not in the sudoers file. This incident will be reported.'); return; }
+    if (name === 'clear') { activeSession.outputEl.innerHTML = ''; return; }
+    if (name === 'exit')  { close(); return; }
+    if (name === 'sudo')  { print('youssef is not in the sudoers file. This incident will be reported.'); return; }
     if (name === 'particles') {
       print('<span class="t-muted">re-running hero animation…</span>');
       close();
       window.smoothScrollTo(0, 600);
-      setTimeout(() => { if (window.formParticles) window.formParticles(); }, 650);
+      setTimeout(function () { if (window.formParticles) window.formParticles(); }, 650);
       return;
     }
     if (name === 'theme') {
@@ -686,24 +743,25 @@ setTimeout(() => {
     }
     if (name === 'matrix') {
       const isLight = document.documentElement.getAttribute('data-theme') === 'light';
-      const mcW = output.clientWidth;
-      const mcH = output.clientHeight;
+      const out = activeSession.outputEl;
+      const mcW = out.clientWidth;
+      const mcH = out.clientHeight;
       const mc = document.createElement('canvas');
       mc.width = mcW;
       mc.height = mcH;
-      output.style.position = 'relative';
+      out.style.position = 'relative';
       mc.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;cursor:pointer;';
-      output.appendChild(mc);
+      out.appendChild(mc);
       const mctx = mc.getContext('2d');
       const cols = Math.floor(mcW / 14);
-      const drops = Array.from({length: cols}, () => Math.random() * -(mcH / 14));
+      const drops = Array.from({length: cols}, function () { return Math.random() * -(mcH / 14); });
       const chars = 'アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン0123456789ABCDEF'.split('');
       let rafId;
       function drawMatrix() {
         mctx.fillStyle = isLight ? 'rgba(245,235,238,0.18)' : 'rgba(10,0,2,0.09)';
         mctx.fillRect(0, 0, mcW, mcH);
         mctx.font = '14px "Fira Code", monospace';
-        drops.forEach((y, i) => {
+        drops.forEach(function (y, i) {
           const ch = chars[Math.floor(Math.random() * chars.length)];
           const b = Math.random();
           mctx.fillStyle = isLight
@@ -718,7 +776,7 @@ setTimeout(() => {
       function matrixTeardown() {
         cancelAnimationFrame(rafId);
         mc.remove();
-        output.style.position = '';
+        out.style.position = '';
         document.removeEventListener('keydown', matrixKey, true);
         activeMatrixTeardown = null;
       }
@@ -730,29 +788,23 @@ setTimeout(() => {
       activeMatrixTeardown = matrixTeardown;
       return;
     }
-    if (name === 'date') {
-      print(new Date().toString());
-      return;
-    }
-    if (name === 'echo') {
-      print(cmd.slice(4).trim());
-      return;
-    }
+    if (name === 'date') { print(new Date().toString()); return; }
+    if (name === 'echo') { print(cmd.slice(4).trim()); return; }
     if (name === 'ping') {
       const host = cmd.slice(4).trim() || 'elshemi.com';
-      const times = Array.from({length: 4}, () => (1 + Math.random() * 12).toFixed(1));
+      const times = Array.from({length: 4}, function () { return (1 + Math.random() * 12).toFixed(1); });
       const nums = times.map(Number);
-      const avg = (nums.reduce((a, b) => a + b, 0) / 4).toFixed(1);
+      const avg = (nums.reduce(function (a, b) { return a + b; }, 0) / 4).toFixed(1);
       print('PING ' + host + ': 56 data bytes');
-      times.forEach((t, i) => {
-        setTimeout(() => {
+      times.forEach(function (t, i) {
+        setTimeout(function () {
           print('64 bytes from ' + host + ': icmp_seq=' + i + ' ttl=64 time=' + t + ' ms');
         }, (i + 1) * 800);
       });
-      setTimeout(() => {
+      setTimeout(function () {
         print('--- ' + host + ' ping statistics ---');
         print('4 packets transmitted, 4 received, 0.0% packet loss');
-        print('round-trip min/avg/max = ' + Math.min(...nums).toFixed(1) + '/' + avg + '/' + Math.max(...nums).toFixed(1) + ' ms');
+        print('round-trip min/avg/max = ' + Math.min.apply(null, nums).toFixed(1) + '/' + avg + '/' + Math.max.apply(null, nums).toFixed(1) + ' ms');
       }, 5 * 800);
       return;
     }
@@ -795,7 +847,7 @@ setTimeout(() => {
         print(info.join('\n'));
       } else {
         const infoStart = 3;
-        print(logo.map((l, i) => {
+        print(logo.map(function (l, i) {
           const infoIdx = i - infoStart;
           return a + l + z + (infoIdx >= 0 && infoIdx < info.length ? '   ' + info[infoIdx] : '');
         }).join('\n'));
@@ -848,14 +900,8 @@ setTimeout(() => {
       }
       return;
     }
-    if (name === 'pwd') {
-      print('/home/youssef/elshemi.com');
-      return;
-    }
-    if (name === 'uname') {
-      print('Darwin elshemi.com 23.0.0 Browser x86_64 JavaScript');
-      return;
-    }
+    if (name === 'pwd')   { print('/home/youssef/elshemi.com'); return; }
+    if (name === 'uname') { print('Darwin elshemi.com 23.0.0 Browser x86_64 JavaScript'); return; }
     if (name === 'cat') {
       const arg = cmd.slice(3).trim();
       if (arg === 'about.txt') {
@@ -874,15 +920,11 @@ setTimeout(() => {
     if (name === 'cd') {
       const arg = cmd.slice(2).trim().toLowerCase();
       const sections = ['about', 'experience', 'skills', 'contact'];
-      if (!arg || arg === '~' || arg === '..') {
-        window.smoothScrollTo(0, 600);
-        close();
-        return;
-      }
+      if (!arg || arg === '~' || arg === '..') { window.smoothScrollTo(0, 600); close(); return; }
       if (sections.includes(arg)) {
         const el = document.getElementById(arg);
         if (el) {
-          const navH = document.querySelector('nav')?.offsetHeight ?? 0;
+          const navH = document.querySelector('nav') ? document.querySelector('nav').offsetHeight : 0;
           window.smoothScrollTo(el.getBoundingClientRect().top + window.scrollY - navH - 16, 750);
         }
         close();
@@ -894,16 +936,16 @@ setTimeout(() => {
     if (COMMANDS[name]) { print(COMMANDS[name]); return; }
     const err = document.createElement('div');
     err.textContent = 'command not found: ' + name;
-    output.appendChild(err);
+    activeSession.outputEl.appendChild(err);
     print('<span class="t-muted">type <span class="t-accent">help</span> for available commands</span>');
   }
 
-  input.addEventListener('keydown', e => {
+  input.addEventListener('keydown', function (e) {
     if (e.key === 'Tab') {
       e.preventDefault();
       if (input.value.indexOf(' ') === -1) {
         if (cycleIdx === -1) {
-          cycleMatches = CMD_NAMES.filter(c => c.startsWith(input.value.toLowerCase()) && c !== input.value.toLowerCase());
+          cycleMatches = CMD_NAMES.filter(function (c) { return c.startsWith(input.value.toLowerCase()) && c !== input.value.toLowerCase(); });
           if (cycleMatches.length === 0) return;
           cycleIdx = 0;
         } else {
@@ -920,36 +962,49 @@ setTimeout(() => {
     } else if (e.key === 'Enter') {
       cycleMatches = []; cycleIdx = -1;
       const val = input.value;
-      if (val.trim()) { history.push(val); localStorage.setItem(HISTORY_KEY, JSON.stringify(history)); }
-      historyIdx = history.length;
+      if (val.trim()) {
+        activeSession.history.push(val);
+        localStorage.setItem(HISTORY_KEY, JSON.stringify(activeSession.history));
+      }
+      activeSession.historyIdx = activeSession.history.length;
       input.value = '';
       updateGhost();
       run(val);
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
       cycleMatches = []; cycleIdx = -1;
-      if (historyIdx > 0) { historyIdx--; input.value = history[historyIdx]; updateGhost(); }
+      if (activeSession.historyIdx > 0) {
+        activeSession.historyIdx--;
+        input.value = activeSession.history[activeSession.historyIdx];
+        updateGhost();
+      }
     } else if (e.key === 'ArrowDown') {
       e.preventDefault();
       cycleMatches = []; cycleIdx = -1;
-      if (historyIdx < history.length - 1) { historyIdx++; input.value = history[historyIdx]; }
-      else { historyIdx = history.length; input.value = ''; }
+      if (activeSession.historyIdx < activeSession.history.length - 1) {
+        activeSession.historyIdx++;
+        input.value = activeSession.history[activeSession.historyIdx];
+      } else {
+        activeSession.historyIdx = activeSession.history.length;
+        input.value = '';
+      }
       updateGhost();
     }
   });
 
   window.__terminalOpen = open;
-  toggle.addEventListener('click', () => { overlay.hidden ? open() : close(); });
+  window.__terminalGetOutput = function () { return activeSession ? activeSession.outputEl : null; };
+  toggle.addEventListener('click', function () { overlay.hidden ? open() : close(); });
 
-  overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+  overlay.addEventListener('click', function (e) { if (e.target === overlay) close(); });
 
-  document.getElementById('terminal-window').addEventListener('click', e => {
+  document.getElementById('terminal-window').addEventListener('click', function (e) {
     if (e.target.closest('a')) return;
     if (window.getSelection().toString()) return;
     input.focus();
   });
 
-  document.addEventListener('keydown', e => {
+  document.addEventListener('keydown', function (e) {
     if (e.key === '`' && overlay.hidden && document.activeElement.tagName !== 'INPUT') {
       e.preventDefault();
       open();
@@ -1097,7 +1152,7 @@ setTimeout(() => {
 })();
 
 (function () {
-  const SEQUENCE = ['ArrowUp','ArrowUp','ArrowDown','ArrowDown','ArrowLeft','ArrowRight','ArrowLeft','ArrowRight','b','a'];
+  const SEQUENCE = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a'];
   const buf = [];
   let active = false;
 
@@ -1138,7 +1193,7 @@ setTimeout(() => {
     active = true;
     if (typeof window.__terminalOpen !== 'function') { active = false; return; }
     window.__terminalOpen();
-    const output = document.getElementById('terminal-output');
+    const output = window.__terminalGetOutput ? window.__terminalGetOutput() : document.querySelector('.terminal-output-pane');
     const termInput = document.getElementById('terminal-input');
     if (termInput) termInput.disabled = true;
     let t = 300;
@@ -1158,6 +1213,6 @@ setTimeout(() => {
 (function () {
   document.addEventListener('pointerdown', e => {
     if (!e.target.closest('button, a, .palette-item, .section-dot, .terminal-dot')) return;
-    navigator.vibrate?.(10);
+    try { navigator.vibrate?.(10); } catch (_) {}
   }, { passive: true });
 })();

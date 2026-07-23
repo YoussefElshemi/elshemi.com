@@ -254,10 +254,14 @@
   <div id="terminal-overlay" hidden>
     <div id="terminal-window">
       <div class="terminal-titlebar">
-        <span class="terminal-dot dot-close" title="Close"></span><span class="terminal-dot dot-min" title="Minimise"></span><span class="terminal-dot dot-max" title="Full screen"></span>
-        <span class="terminal-title">youssef@elshemi.com — bash</span>
+        <div class="terminal-titlebar-top">
+          <span class="terminal-dot dot-close" title="Close"></span><span class="terminal-dot dot-min" title="Minimise"></span><span class="terminal-dot dot-max" title="Full screen"></span>
+          <span class="terminal-title">youssef@elshemi.com — bash</span>
+        </div>
+        <div class="terminal-tabs">
+          <button id="terminal-tab-add">+</button>
+        </div>
       </div>
-      <div id="terminal-output" aria-live="polite"></div>
       <div class="terminal-input-row">
         <span class="terminal-prompt">youssef@elshemi.com:~$</span>
         <div class="terminal-input-wrap">
