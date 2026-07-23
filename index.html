@@ -252,25 +252,27 @@
   <button id="terminal-toggle" aria-label="Open terminal" data-magnetic="0.4">&gt;_</button>
 
   <div id="terminal-overlay" hidden>
-    <div id="terminal-window">
-      <div class="terminal-titlebar">
-        <div class="terminal-titlebar-top">
-          <span class="terminal-dot dot-close" title="Close"></span><span class="terminal-dot dot-min" title="Minimise"></span><span class="terminal-dot dot-max" title="Full screen"></span>
-          <span class="terminal-title">youssef@elshemi.com — bash</span>
-        </div>
-        <div class="terminal-tabs">
-          <button id="terminal-tab-add">+</button>
-        </div>
+    <div id="terminal-window" class="terminal-window"></div>
+  </div>
+
+  <template id="terminal-window-template">
+    <div class="terminal-titlebar">
+      <div class="terminal-titlebar-top">
+        <span class="terminal-dot dot-close" title="Close"></span><span class="terminal-dot dot-min" title="Minimise"></span><span class="terminal-dot dot-max" title="Full screen"></span>
+        <span class="terminal-title">youssef@elshemi.com — bash</span>
       </div>
-      <div class="terminal-input-row">
-        <span class="terminal-prompt">youssef@elshemi.com:~$</span>
-        <div class="terminal-input-wrap">
-          <span id="terminal-ghost" aria-hidden="true"></span>
-          <input id="terminal-input" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" aria-label="Terminal input">
-        </div>
+      <div class="terminal-tabs">
+        <button class="terminal-tab-add">+</button>
       </div>
     </div>
-  </div>
+    <div class="terminal-input-row">
+      <span class="terminal-prompt">youssef@elshemi.com:~$</span>
+      <div class="terminal-input-wrap">
+        <span class="terminal-ghost" aria-hidden="true"></span>
+        <input class="terminal-input" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" aria-label="Terminal input">
+      </div>
+    </div>
+  </template>
 
   <div id="palette-overlay" hidden>
     <div id="palette-window">

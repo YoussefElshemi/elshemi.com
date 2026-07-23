@@ -434,189 +434,11 @@ setTimeout(() => {
 
 (function () {
   const overlay = document.getElementById('terminal-overlay');
-  const input = document.getElementById('terminal-input');
   const toggle = document.getElementById('terminal-toggle');
-  const win = document.getElementById('terminal-window');
-  const tabAdd = document.getElementById('terminal-tab-add');
-  const tabsEl = document.querySelector('.terminal-tabs');
-  if (!overlay || !input || !toggle || !win || !tabAdd || !tabsEl) return;
+  if (!overlay || !toggle) return;
 
-  const MAX_TABS = 4;
-  const HISTORY_KEY = 'terminal_history';
-  const ghost = document.getElementById('terminal-ghost');
-  const CMD_NAMES = ['cat', 'cd', 'clear', 'contact', 'date', 'echo', 'exit', 'experience', 'help', 'ls', 'man', 'matrix', 'neofetch', 'particles', 'ping', 'pwd', 'skills', 'sudo', 'theme', 'uname', 'whoami'];
-  let suggestion = null;
-  let cycleMatches = [];
-  let cycleIdx = -1;
-  let activeMatrixTeardown = null;
-  let sessions = [];
-  let activeSession = null;
-  let nextId = 1;
-
-  function createSession() {
-    const name = nextId === 1 ? 'bash' : 'bash ' + nextId;
-    const stored = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
-    const outputEl = document.createElement('div');
-    outputEl.className = 'terminal-output-pane';
-    outputEl.setAttribute('aria-live', 'polite');
-    outputEl.style.display = 'none';
-    win.insertBefore(outputEl, win.querySelector('.terminal-input-row'));
-    const session = { id: nextId++, name, outputEl, history: stored.slice(), historyIdx: stored.length, booted: false };
-    sessions.push(session);
-    return session;
-  }
-
-  function switchToSession(session) {
-    if (activeSession) activeSession.outputEl.style.display = 'none';
-    activeSession = session;
-    activeSession.outputEl.style.display = '';
-    renderTabBar();
-    input.focus();
-  }
-
-  function renderTabBar() {
-    tabsEl.querySelectorAll('.terminal-tab').forEach(function (el) { el.remove(); });
-    sessions.forEach(function (session) {
-      const tab = document.createElement('button');
-      tab.className = 'terminal-tab' + (session === activeSession ? ' active' : '');
-      tab.addEventListener('click', function () { if (session !== activeSession) switchToSession(session); });
-      const lbl = document.createElement('span');
-      lbl.className = 'terminal-tab-label';
-      lbl.textContent = session.name;
-      tab.appendChild(lbl);
-      if (sessions.length > 1) {
-        const x = document.createElement('span');
-        x.className = 'terminal-tab-close';
-        x.setAttribute('role', 'button');
-        x.setAttribute('tabindex', '0');
-        x.textContent = '×';
-        x.addEventListener('click', function (e) { e.stopPropagation(); closeSession(session); });
-        tab.appendChild(x);
-      }
-      tabsEl.insertBefore(tab, tabAdd);
-    });
-    tabAdd.style.display = sessions.length >= MAX_TABS ? 'none' : '';
-  }
-
-  function closeSession(session) {
-    if (sessions.length <= 1) return;
-    const idx = sessions.indexOf(session);
-    sessions.splice(idx, 1);
-    session.outputEl.remove();
-    switchToSession(sessions[Math.max(0, idx - 1)]);
-  }
-
-  tabAdd.addEventListener('click', function () {
-    if (sessions.length >= MAX_TABS) return;
-    const session = createSession();
-    switchToSession(session);
-    boot(session);
-  });
-
-  function boot(session) {
-    if (session.booted) return;
-    session.booted = true;
-    print('<span class="t-muted">elshemi.com terminal — type <span class="t-accent">help</span> to get started.</span>');
-  }
-
-  const COMMANDS = {
-    help: [
-      '<span class="t-accent">Available commands:</span>',
-      '  whoami       who is this guy',
-      '  experience   where I\'ve worked',
-      '  skills       what I work with',
-      '  contact      how to reach me',
-      '  particles    re-run the hero animation',
-      '  theme        switch light/dark mode',
-      '  clear        clear the screen',
-      '  exit         close the terminal',
-      '  ls           list site sections',
-      '  cd           navigate to a section',
-      '  pwd          print working directory',
-      '  cat          print file contents',
-      '  echo         write arguments to stdout',
-      '  date         display current date and time',
-      '  ping         send ICMP packets to a host',
-      '  uname        print system information',
-      '  neofetch     display system info with style',
-      '  man          display manual for a command',
-      '  matrix       enter the matrix'
-    ].join('\n'),
-    whoami: [
-      '<span class="t-accent">Youssef Elshemi</span> — Software Engineer, London',
-      'Building payment infrastructure in fintech: API integrations',
-      'processing billions in payments, containerised services on',
-      'Kubernetes, AWS, .NET. BSc Computer Science, University of',
-      'Exeter (First Class Honours). English & Arabic.'
-    ].join('\n'),
-    experience: [
-      '<span class="t-accent">Software Engineer</span> · Alpha Group <span class="t-muted">(Jan 2025 – Present)</span>',
-      '  K8s migrations, Verification of Payee, BoE compliance',
-      '<span class="t-accent">Graduate Software Engineer</span> · Alpha Group <span class="t-muted">(Sep 2023 – Jan 2025)</span>',
-      '  Bank API integrations (£25bn+ processed), STP (-90% processing time)',
-      '<span class="t-accent">Co-Founder & CTO</span> · DataScrapa <span class="t-muted">(Feb 2023 – Jan 2024)</span>',
-      '  AWS serverless data pipeline, millions of records daily'
-    ].join('\n'),
-    skills: [
-      '<span class="t-accent">Languages</span>      C#/.NET Core, Python, TypeScript, Apex',
-      '<span class="t-accent">Cloud/DevOps</span>   AWS, Docker, Kubernetes, IaC, CircleCI, Jenkins',
-      '<span class="t-accent">Data</span>           PostgreSQL, MongoDB, MySQL, Big Data',
-      '<span class="t-accent">Payments</span>       REST APIs, SWIFT, H2H, Open Banking',
-      '<span class="t-accent">Engineering</span>    System Design, Distributed Systems, EDA, CI/CD'
-    ].join('\n'),
-    contact: [
-      'email     <a href="mailto:youssef@elshemi.com" target="_blank" rel="noopener">youssef@elshemi.com</a>',
-      'linkedin  <a href="https://www.linkedin.com/in/youssef-elshemi/" target="_blank" rel="noopener">linkedin.com/in/youssef-elshemi</a>',
-      'github    <a href="https://github.com/YoussefElshemi" target="_blank" rel="noopener">github.com/YoussefElshemi</a>'
-    ].join('\n')
-  };
-
-  function print(html) {
-    const line = document.createElement('div');
-    line.innerHTML = html;
-    activeSession.outputEl.appendChild(line);
-    activeSession.outputEl.scrollTop = activeSession.outputEl.scrollHeight;
-  }
-
-  function printEcho(cmd) {
-    const line = document.createElement('div');
-    const prompt = document.createElement('span');
-    prompt.className = 't-accent';
-    prompt.textContent = '$ ';
-    line.appendChild(prompt);
-    line.appendChild(document.createTextNode(cmd));
-    activeSession.outputEl.appendChild(line);
-    activeSession.outputEl.scrollTop = activeSession.outputEl.scrollHeight;
-  }
-
-  function updateGhost() {
-    suggestion = null;
-    if (ghost) ghost.textContent = '';
-    const val = input.value;
-    if (!val) return;
-    const spaceIdx = val.indexOf(' ');
-    if (spaceIdx === -1) {
-      const match = CMD_NAMES.find(function (c) { return c.startsWith(val.toLowerCase()) && c !== val.toLowerCase(); });
-      if (match) { suggestion = match; if (ghost) ghost.textContent = val + match.slice(val.length); }
-    } else {
-      const base = val.slice(0, spaceIdx).toLowerCase();
-      const arg = val.slice(spaceIdx + 1);
-      const ARG_COMPLETIONS = {
-        man: CMD_NAMES,
-        cd: ['about', 'contact', 'experience', 'skills', '..', '~'],
-        cat: ['about.txt', 'contact.txt', 'experience.txt', 'skills.txt'],
-        ls: ['-la'],
-        theme: ['dark', 'light'],
-        ping: ['elshemi.com']
-      };
-      const completions = ARG_COMPLETIONS[base];
-      if (completions) {
-        const match = completions.find(function (c) { return c.startsWith(arg.toLowerCase()) && c !== arg.toLowerCase(); });
-        if (match) { suggestion = val.slice(0, spaceIdx + 1) + match; if (ghost) ghost.textContent = suggestion; }
-      }
-    }
-  }
-  input.addEventListener('input', function () { cycleMatches = []; cycleIdx = -1; updateGhost(); });
+  const terminalInstances = [];
+  let focusedInstance = null;
 
   function fitOverlay() {
     if (overlay.hidden || !window.visualViewport) return;
@@ -628,389 +450,811 @@ setTimeout(() => {
     window.visualViewport.addEventListener('scroll', fitOverlay);
   }
 
-  function open() {
+  function openOverlay() {
     overlay.hidden = false;
-    win.classList.remove('minimized');
     fitOverlay();
-    if (sessions.length === 0) {
-      const session = createSession();
-      switchToSession(session);
-    }
-    boot(activeSession);
-    input.focus();
   }
 
-  function close() {
+  function closeOverlay() {
     overlay.hidden = true;
     overlay.style.top = '';
     overlay.style.height = '';
-    win.classList.remove('minimized', 'fullscreen');
-    win.style.left = '';
-    win.style.top = '';
-    win.style.transform = '';
-    input.blur();
+    terminalInstances.forEach(function (inst) {
+      inst.element.classList.remove('minimized', 'fullscreen');
+    });
+    primaryWin.style.left = '';
+    primaryWin.style.top = '';
+    primaryWin.style.transform = '';
+    if (focusedInstance) focusedInstance.element.querySelector('.terminal-input').blur();
   }
 
-  function reset() {
-    sessions.forEach(function (s) { s.outputEl.remove(); });
-    sessions = [];
-    activeSession = null;
-    nextId = 1;
-    if (ghost) ghost.textContent = '';
-    suggestion = null;
-    input.value = '';
+  function spawnWindow(x, y) {
+    const tpl = document.getElementById('terminal-window-template');
+    const el = document.createElement('div');
+    el.className = 'terminal-window';
+    el.innerHTML = tpl.innerHTML;
+    const w = 520, h = 320;
+    el.style.position = 'absolute';
+    const overlayRect = overlay.getBoundingClientRect();
+    const relX = x - overlayRect.left;
+    const relY = y - overlayRect.top;
+    el.style.left = Math.min(Math.max(0, relX - w / 2), overlay.clientWidth - w) + 'px';
+    el.style.top = Math.min(Math.max(0, relY - 20), overlay.clientHeight - h) + 'px';
+    overlay.appendChild(el);
+    const inst = createTerminal(el);
+    terminalInstances.push(inst);
+    el.querySelector('.dot-close').addEventListener('click', function (e) { e.stopPropagation(); inst.destroy(); });
+    el.querySelector('.dot-min').addEventListener('click', function (e) { e.stopPropagation(); closeOverlay(); });
+    el.querySelector('.dot-max').addEventListener('click', function (e) {
+      e.stopPropagation();
+      el.classList.remove('minimized');
+      el.classList.toggle('fullscreen');
+      el.querySelector('.terminal-input').focus();
+    });
+    focusedInstance = inst;
+    return inst;
   }
 
-  const dotClose = document.querySelector('.dot-close');
-  const dotMin = document.querySelector('.dot-min');
-  const dotMax = document.querySelector('.dot-max');
-  if (dotClose) dotClose.addEventListener('click', function (e) { e.stopPropagation(); reset(); close(); });
-  if (dotMin) dotMin.addEventListener('click', function (e) { e.stopPropagation(); close(); });
-  if (dotMax) dotMax.addEventListener('click', function (e) {
-    e.stopPropagation();
-    win.classList.remove('minimized');
-    win.classList.toggle('fullscreen');
-    input.focus();
-  });
+  function createTerminal(rootEl) {
+    const input = rootEl.querySelector('.terminal-input');
+    const ghost = rootEl.querySelector('.terminal-ghost');
+    const tabsEl = rootEl.querySelector('.terminal-tabs');
+    const tabAdd = rootEl.querySelector('.terminal-tab-add');
+    if (!input || !tabsEl || !tabAdd) return null;
 
-  const titlebar = document.querySelector('.terminal-titlebar');
-  if (titlebar) {
-    let dragStartX, dragStartY, dragOrigLeft, dragOrigTop;
+    const MAX_TABS = 4;
+    const HISTORY_KEY = 'terminal_history';
+    const CMD_NAMES = ['cat', 'cd', 'clear', 'contact', 'date', 'echo', 'exit', 'experience', 'help', 'ls', 'man', 'matrix', 'neofetch', 'particles', 'ping', 'pwd', 'skills', 'sudo', 'theme', 'uname', 'whoami'];
+    let suggestion = null;
+    let cycleMatches = [];
+    let cycleIdx = -1;
+    let activeMatrixTeardown = null;
+    let sessions = [];
+    let activeSession = null;
+    let nextId = 1;
+    let dragSession = null;
+    let dragGhostEl = null;
+    let dragInsertIdx = -1;
+    let windowGhostEl = null;
+    let currentDropTarget = null;
 
-    titlebar.addEventListener('pointerdown', function (e) {
-      if (win.classList.contains('fullscreen')) return;
-      if (e.target.classList.contains('terminal-dot') ||
-          e.target.classList.contains('terminal-tab') ||
-          e.target.classList.contains('terminal-tab-close') ||
-          e.target.classList.contains('terminal-tab-label') ||
-          e.target.id === 'terminal-tab-add') return;
-
-      const overlayRect = overlay.getBoundingClientRect();
-      const winRect = win.getBoundingClientRect();
-      dragStartX = e.clientX;
-      dragStartY = e.clientY;
-      dragOrigLeft = winRect.left - overlayRect.left;
-      dragOrigTop = winRect.top - overlayRect.top;
-      win.style.transform = 'none';
-      win.style.left = dragOrigLeft + 'px';
-      win.style.top = dragOrigTop + 'px';
-      titlebar.setPointerCapture(e.pointerId);
-    });
-
-    titlebar.addEventListener('pointermove', function (e) {
-      if (!titlebar.hasPointerCapture(e.pointerId)) return;
-      const overlayRect = overlay.getBoundingClientRect();
-      const winRect = win.getBoundingClientRect();
-      const maxLeft = overlayRect.width - winRect.width;
-      const maxTop = overlayRect.height - winRect.height;
-      win.style.left = Math.min(Math.max(0, dragOrigLeft + (e.clientX - dragStartX)), maxLeft) + 'px';
-      win.style.top = Math.min(Math.max(0, dragOrigTop + (e.clientY - dragStartY)), maxTop) + 'px';
-    });
-
-    titlebar.addEventListener('pointerup', function (e) {
-      titlebar.releasePointerCapture(e.pointerId);
-    });
-  }
-
-  function run(raw) {
-    if (activeMatrixTeardown) { activeMatrixTeardown(); activeMatrixTeardown = null; }
-    const cmd = raw.trim();
-    printEcho(cmd);
-    if (!cmd) return;
-    const name = cmd.split(/\s+/)[0].toLowerCase();
-    if (name === 'clear') { activeSession.outputEl.innerHTML = ''; return; }
-    if (name === 'exit')  { close(); return; }
-    if (name === 'sudo')  { print('youssef is not in the sudoers file. This incident will be reported.'); return; }
-    if (name === 'particles') {
-      print('<span class="t-muted">re-running hero animation…</span>');
-      close();
-      window.smoothScrollTo(0, 600);
-      setTimeout(function () { if (window.formParticles) window.formParticles(); }, 650);
-      return;
-    }
-    if (name === 'theme') {
-      const arg = (cmd.split(/\s+/)[1] || '').toLowerCase();
-      const current = document.documentElement.getAttribute('data-theme') || 'dark';
-      if (arg === 'light' || arg === 'dark') {
-        if (window.__applyTheme) window.__applyTheme(arg);
-        print('<span class="t-muted">theme set to ' + arg + '</span>');
-      } else if (!arg) {
-        print('<span class="t-muted">current theme: ' + current + ' — usage: theme light|dark</span>');
-      } else {
-        print('<span class="t-muted">usage: theme light|dark</span>');
+    function getInsertIdx(clientX) {
+      const tabs = Array.from(tabsEl.querySelectorAll('.terminal-tab'));
+      for (let i = 0; i < tabs.length; i++) {
+        const r = tabs[i].getBoundingClientRect();
+        if (clientX < r.left + r.width / 2) return i;
       }
-      return;
+      return tabs.length;
     }
-    if (name === 'matrix') {
-      const isLight = document.documentElement.getAttribute('data-theme') === 'light';
-      const out = activeSession.outputEl;
-      const mcW = out.clientWidth;
-      const mcH = out.clientHeight;
-      const mc = document.createElement('canvas');
-      mc.width = mcW;
-      mc.height = mcH;
-      out.style.position = 'relative';
-      mc.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;cursor:pointer;';
-      out.appendChild(mc);
-      const mctx = mc.getContext('2d');
-      const cols = Math.floor(mcW / 14);
-      const drops = Array.from({length: cols}, function () { return Math.random() * -(mcH / 14); });
-      const chars = 'アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン0123456789ABCDEF'.split('');
-      let rafId;
-      function drawMatrix() {
-        mctx.fillStyle = isLight ? 'rgba(245,235,238,0.18)' : 'rgba(10,0,2,0.09)';
-        mctx.fillRect(0, 0, mcW, mcH);
-        mctx.font = '14px "Fira Code", monospace';
-        drops.forEach(function (y, i) {
-          const ch = chars[Math.floor(Math.random() * chars.length)];
-          const b = Math.random();
-          mctx.fillStyle = isLight
-            ? (b > 0.95 ? '#5a0820' : b > 0.6 ? '#8b1530' : '#c05070')
-            : (b > 0.95 ? '#ffb3cc' : b > 0.6 ? '#be1549' : '#6b0c29');
-          mctx.fillText(ch, i * 14, y * 14);
-          drops[i] = y > mcH / 14 && Math.random() > 0.975 ? 0 : y + 1;
+
+    function startTabDrag(e, session) {
+      dragSession = session;
+      dragInsertIdx = sessions.indexOf(session);
+      dragGhostEl = document.createElement('div');
+      dragGhostEl.className = 'tab-drag-ghost';
+      dragGhostEl.textContent = session.name;
+      dragGhostEl.style.left = e.clientX + 'px';
+      dragGhostEl.style.top = e.clientY - 20 + 'px';
+      document.body.appendChild(dragGhostEl);
+    }
+
+    function createSession() {
+      const name = nextId === 1 ? 'bash' : 'bash ' + nextId;
+      const stored = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+      const outputEl = document.createElement('div');
+      outputEl.className = 'terminal-output-pane';
+      outputEl.setAttribute('aria-live', 'polite');
+      outputEl.style.display = 'none';
+      rootEl.insertBefore(outputEl, rootEl.querySelector('.terminal-input-row'));
+      const session = { id: nextId++, name, outputEl, history: stored.slice(), historyIdx: stored.length, booted: false };
+      sessions.push(session);
+      return session;
+    }
+
+    function switchToSession(session) {
+      if (activeSession) activeSession.outputEl.style.display = 'none';
+      activeSession = session;
+      activeSession.outputEl.style.display = '';
+      renderTabBar();
+      input.focus();
+    }
+
+    function renderTabBar() {
+      tabsEl.querySelectorAll('.terminal-tab, .tab-drop-gap').forEach(function (el) { el.remove(); });
+      sessions.forEach(function (session) {
+        const tab = document.createElement('button');
+        tab.className = 'terminal-tab' + (session === activeSession ? ' active' : '');
+        tab.addEventListener('click', function () { if (session !== activeSession) switchToSession(session); });
+        tab.addEventListener('pointerdown', function (e) {
+          if (e.button !== 0) return;
+          if (dragSession) return;
+          if (e.target.classList.contains('terminal-tab-close')) return;
+          e.preventDefault();
+          startTabDrag(e, session);
+          const pid = e.pointerId;
+
+          function onMove(e) {
+            if (e.pointerId !== pid || !dragSession) return;
+            const stripRect = tabsEl.getBoundingClientRect();
+            const outsideStrip = e.clientY > stripRect.bottom + 5 || e.clientY < stripRect.top;
+
+            if (outsideStrip) {
+              if (dragGhostEl) { dragGhostEl.remove(); dragGhostEl = null; }
+              if (!windowGhostEl) {
+                renderTabBar();
+                windowGhostEl = document.createElement('div');
+                windowGhostEl.className = 'window-drag-ghost';
+                document.body.appendChild(windowGhostEl);
+              }
+              windowGhostEl.style.left = e.clientX + 'px';
+              windowGhostEl.style.top = e.clientY + 'px';
+
+              currentDropTarget = null;
+              terminalInstances.forEach(function (inst) {
+                if (inst === instance) return;
+                const r = inst.element.getBoundingClientRect();
+                const tr = inst.element.querySelector('.terminal-tabs').getBoundingClientRect();
+                const hitTop = Math.min(r.top, tr.top);
+                if (e.clientX >= r.left && e.clientX <= r.right && e.clientY >= hitTop && e.clientY <= r.bottom) {
+                  currentDropTarget = inst;
+                  inst.element.classList.add('drop-target');
+                } else {
+                  inst.element.classList.remove('drop-target');
+                }
+              });
+            } else {
+              if (windowGhostEl) { windowGhostEl.remove(); windowGhostEl = null; }
+              currentDropTarget = null;
+              terminalInstances.forEach(function (inst) {
+                inst.element.classList.remove('drop-target');
+              });
+              if (!dragGhostEl) {
+                dragGhostEl = document.createElement('div');
+                dragGhostEl.className = 'tab-drag-ghost';
+                dragGhostEl.textContent = dragSession.name;
+                document.body.appendChild(dragGhostEl);
+              }
+              dragGhostEl.style.left = e.clientX + 'px';
+              dragGhostEl.style.top = e.clientY - 20 + 'px';
+              const fromIdx = sessions.indexOf(dragSession);
+              const rawIdx = getInsertIdx(e.clientX);
+              dragInsertIdx = rawIdx >= fromIdx ? rawIdx + 1 : rawIdx;
+              renderTabBarWithGap(dragInsertIdx);
+            }
+          }
+
+          function cleanup() {
+            document.removeEventListener('pointermove', onMove);
+            document.removeEventListener('pointerup', onUp);
+            document.removeEventListener('pointercancel', onCancel);
+          }
+
+          function onCancel(e) {
+            if (e.pointerId !== pid) return;
+            cleanup();
+            dragSession = null;
+            dragInsertIdx = -1;
+            if (dragGhostEl) { dragGhostEl.remove(); dragGhostEl = null; }
+            if (windowGhostEl) { windowGhostEl.remove(); windowGhostEl = null; }
+            terminalInstances.forEach(function (inst) { inst.element.classList.remove('drop-target'); });
+            currentDropTarget = null;
+            renderTabBar();
+          }
+
+          function onUp(e) {
+            if (e.pointerId !== pid) return;
+            cleanup();
+            if (!dragSession) return;
+            const session = dragSession;
+            const savedInsertIdx = dragInsertIdx;
+            dragSession = null;
+            dragInsertIdx = -1;
+            if (dragGhostEl) { dragGhostEl.remove(); dragGhostEl = null; }
+            if (windowGhostEl) { windowGhostEl.remove(); windowGhostEl = null; }
+            terminalInstances.forEach(function (inst) { inst.element.classList.remove('drop-target'); });
+
+            const stripRect = tabsEl.getBoundingClientRect();
+            const outsideStrip = e.clientY > stripRect.bottom + 5 || e.clientY < stripRect.top;
+
+            if (outsideStrip && currentDropTarget) {
+              instance.removeSession(session);
+              currentDropTarget.addSession(session);
+              if (instance.sessions.length === 0) instance.destroy();
+            } else if (outsideStrip && sessions.length > 1) {
+              instance.removeSession(session);
+              const newInst = spawnWindow(e.clientX, e.clientY);
+              newInst.addSession(session);
+            } else {
+              if (savedInsertIdx !== -1) {
+                const fromIdx = sessions.indexOf(session);
+                if (fromIdx !== -1) {
+                  const toIdx = savedInsertIdx > fromIdx ? savedInsertIdx - 1 : savedInsertIdx;
+                  sessions.splice(fromIdx, 1);
+                  sessions.splice(toIdx, 0, session);
+                }
+              }
+              renderTabBar();
+            }
+            currentDropTarget = null;
+          }
+
+          document.addEventListener('pointermove', onMove);
+          document.addEventListener('pointerup', onUp);
+          document.addEventListener('pointercancel', onCancel);
         });
-        rafId = requestAnimationFrame(drawMatrix);
-      }
-      rafId = requestAnimationFrame(drawMatrix);
-      function matrixTeardown() {
-        cancelAnimationFrame(rafId);
-        mc.remove();
-        out.style.position = '';
-        document.removeEventListener('keydown', matrixKey, true);
-        activeMatrixTeardown = null;
-      }
-      function matrixKey(e) {
-        if (e.key === 'Escape') { e.stopImmediatePropagation(); matrixTeardown(); }
-      }
-      document.addEventListener('keydown', matrixKey, true);
-      mc.addEventListener('click', matrixTeardown);
-      activeMatrixTeardown = matrixTeardown;
-      return;
-    }
-    if (name === 'date') { print(new Date().toString()); return; }
-    if (name === 'echo') { print(cmd.slice(4).trim()); return; }
-    if (name === 'ping') {
-      const host = cmd.slice(4).trim() || 'elshemi.com';
-      const times = Array.from({length: 4}, function () { return (1 + Math.random() * 12).toFixed(1); });
-      const nums = times.map(Number);
-      const avg = (nums.reduce(function (a, b) { return a + b; }, 0) / 4).toFixed(1);
-      print('PING ' + host + ': 56 data bytes');
-      times.forEach(function (t, i) {
-        setTimeout(function () {
-          print('64 bytes from ' + host + ': icmp_seq=' + i + ' ttl=64 time=' + t + ' ms');
-        }, (i + 1) * 800);
+        const lbl = document.createElement('span');
+        lbl.className = 'terminal-tab-label';
+        lbl.textContent = session.name;
+        tab.appendChild(lbl);
+        const x = document.createElement('span');
+        x.className = 'terminal-tab-close';
+        x.setAttribute('role', 'button');
+        x.setAttribute('tabindex', '0');
+        x.textContent = '×';
+        x.addEventListener('click', function (e) { e.stopPropagation(); closeSession(session); });
+        tab.appendChild(x);
+        tab.addEventListener('mousedown', function (e) { if (e.button === 1) { e.preventDefault(); closeSession(session); } });
+        tabsEl.insertBefore(tab, tabAdd);
       });
-      setTimeout(function () {
-        print('--- ' + host + ' ping statistics ---');
-        print('4 packets transmitted, 4 received, 0.0% packet loss');
-        print('round-trip min/avg/max = ' + Math.min.apply(null, nums).toFixed(1) + '/' + avg + '/' + Math.max.apply(null, nums).toFixed(1) + ' ms');
-      }, 5 * 800);
-      return;
+      tabAdd.style.display = sessions.length >= MAX_TABS ? 'none' : '';
     }
-    if (name === 'neofetch') {
-      const theme = document.documentElement.getAttribute('data-theme') || 'dark';
-      const uptime = Math.floor(performance.now() / 1000);
-      const ua = navigator.userAgent;
-      const browser = /Edg/.test(ua) ? 'Edge' : /Chrome/.test(ua) ? 'Chrome' : /Firefox/.test(ua) ? 'Firefox' : /Safari/.test(ua) ? 'Safari' : 'Browser';
-      const particleCount = window.innerWidth < 768 ? 200 : 500;
-      const a = '<span class="t-accent">';
-      const z = '</span>';
-      const logo = [
-        '  ............................  ',
-        ' .............................. ',
-        '................................',
-        '..........    ....    ..........',
-        '...........    ..    ...........',
-        '............        ............',
-        '.............      .............',
-        '..............    ..............',
-        '..............    ..............',
-        '..............    ..............',
-        '................................',
-        ' .............................. ',
-        '  ............................  ',
-      ];
-      const info = [
-        'youssef@elshemi.com',
-        a + '───────────────────' + z,
-        'OS:         elshemi.com v1.0',
-        'Host:       ' + browser,
-        'Uptime:     ' + uptime + 's',
-        'Shell:      bash (simulated)',
-        'Theme:      ' + theme,
-        'Particles:  ' + particleCount,
-        'Location:   London, UK',
-        'Languages:  C#, Python, TypeScript',
-      ];
-      if (window.innerWidth < 768) {
-        print(info.join('\n'));
-      } else {
-        const infoStart = 3;
-        print(logo.map(function (l, i) {
-          const infoIdx = i - infoStart;
-          return a + l + z + (infoIdx >= 0 && infoIdx < info.length ? '   ' + info[infoIdx] : '');
-        }).join('\n'));
-      }
-      return;
-    }
-    if (name === 'man') {
-      const topic = cmd.slice(3).trim().toLowerCase();
-      if (!topic) { print('<span class="t-muted">usage: man [command]</span>'); return; }
-      const pages = {
-        whoami:    'NAME\n    whoami - print current user\n\nSYNOPSIS\n    whoami\n\nDESCRIPTION\n    Displays the name of the current user of this terminal.',
-        help:      'NAME\n    help - list available commands\n\nSYNOPSIS\n    help\n\nDESCRIPTION\n    Prints a summary of all commands supported by this terminal.',
-        ls:        'NAME\n    ls - list site sections\n\nSYNOPSIS\n    ls [-la]\n\nDESCRIPTION\n    Without flags, lists site sections. With -la shows a long listing with permissions and sizes.',
-        pwd:       'NAME\n    pwd - print working directory\n\nSYNOPSIS\n    pwd\n\nDESCRIPTION\n    Outputs the current working directory path.',
-        cat:       'NAME\n    cat - print file contents\n\nSYNOPSIS\n    cat [file]\n\nDESCRIPTION\n    Prints the contents of the given file. Supported files: about.txt, experience.txt, skills.txt, contact.txt.',
-        cd:        'NAME\n    cd - navigate to a section\n\nSYNOPSIS\n    cd [section]\n\nDESCRIPTION\n    Scrolls to the given section and closes the terminal. Sections: about, experience, skills, contact. Use cd or cd ~ to return to the top.',
-        echo:      'NAME\n    echo - write arguments to stdout\n\nSYNOPSIS\n    echo [text]\n\nDESCRIPTION\n    Writes the given text to the terminal output.',
-        date:      'NAME\n    date - display current date and time\n\nSYNOPSIS\n    date\n\nDESCRIPTION\n    Prints the current date and time from your system clock.',
-        ping:      'NAME\n    ping - send ICMP packets to a host\n\nSYNOPSIS\n    ping [host]\n\nDESCRIPTION\n    Sends 4 simulated ICMP packets to the given host and prints round-trip statistics.',
-        uname:     'NAME\n    uname - print system information\n\nSYNOPSIS\n    uname\n\nDESCRIPTION\n    Prints system information about the current environment.',
-        neofetch:  'NAME\n    neofetch - display system information with style\n\nSYNOPSIS\n    neofetch\n\nDESCRIPTION\n    Prints a summary of the current environment including theme, uptime, and particle count.',
-        matrix:    'NAME\n    matrix - enter the matrix\n\nSYNOPSIS\n    matrix\n\nDESCRIPTION\n    Renders a Matrix rain animation inside the terminal. Click the canvas or press ESC to stop.',
-        theme:     'NAME\n    theme - toggle light/dark mode\n\nSYNOPSIS\n    theme [light|dark]\n\nDESCRIPTION\n    Without arguments, shows the current theme. With an argument, switches to that theme.',
-        particles: 'NAME\n    particles - re-run the hero animation\n\nSYNOPSIS\n    particles\n\nDESCRIPTION\n    Scrolls to the top and replays the particle formation animation.',
-        clear:     'NAME\n    clear - clear the terminal\n\nSYNOPSIS\n    clear\n\nDESCRIPTION\n    Removes all output from the terminal screen.',
-        exit:      'NAME\n    exit - close the terminal\n\nSYNOPSIS\n    exit\n\nDESCRIPTION\n    Closes the terminal overlay.',
-        sudo:      'NAME\n    sudo - execute a command as superuser\n\nSYNOPSIS\n    sudo [command]\n\nDESCRIPTION\n    You are not in the sudoers file. This incident will be reported.'
-      };
-      if (!pages[topic]) { print('No manual entry for ' + topic); return; }
-      print(pages[topic]);
-      return;
-    }
-    if (name === 'ls') {
-      const arg = cmd.slice(2).trim();
-      if (arg === '-la') {
-        print([
-          'total 9',
-          'drwxr-xr-x  <span class="t-accent">hero/</span>            4.2K  Jan 25 2025',
-          'drwxr-xr-x  <span class="t-accent">about/</span>           2.1K  Jan 25 2025',
-          'drwxr-xr-x  <span class="t-accent">experience/</span>      8.4K  Jan 25 2025',
-          'drwxr-xr-x  <span class="t-accent">skills/</span>          3.7K  Jan 25 2025',
-          'drwxr-xr-x  <span class="t-accent">contact/</span>         1.8K  Jan 25 2025',
-          '-rw-r--r--  about.txt           512  Jan 25 2025',
-          '-rw-r--r--  experience.txt      1.2K  Jan 25 2025',
-          '-rw-r--r--  skills.txt           892  Jan 25 2025',
-          '-rw-r--r--  contact.txt          256  Jan 25 2025'
-        ].join('\n'));
-      } else {
-        print('<span class="t-accent">hero/</span>  <span class="t-accent">about/</span>  <span class="t-accent">experience/</span>  <span class="t-accent">skills/</span>  <span class="t-accent">contact/</span>  about.txt  experience.txt  skills.txt  contact.txt');
-      }
-      return;
-    }
-    if (name === 'pwd')   { print('/home/youssef/elshemi.com'); return; }
-    if (name === 'uname') { print('Darwin elshemi.com 23.0.0 Browser x86_64 JavaScript'); return; }
-    if (name === 'cat') {
-      const arg = cmd.slice(3).trim();
-      if (arg === 'about.txt') {
-        print('Software engineer with 3 years of experience building payment infrastructure in fintech. Working across the full stack — from API integrations processing billions in payments to containerised services on Kubernetes. AWS, .NET, and distributed systems.');
-      } else if (arg === 'experience.txt') {
-        print(COMMANDS.experience);
-      } else if (arg === 'skills.txt') {
-        print(COMMANDS.skills);
-      } else if (arg === 'contact.txt') {
-        print(COMMANDS.contact);
-      } else {
-        print('cat: ' + (arg || '(no file)') + ': No such file or directory');
-      }
-      return;
-    }
-    if (name === 'cd') {
-      const arg = cmd.slice(2).trim().toLowerCase();
-      const sections = ['about', 'experience', 'skills', 'contact'];
-      if (!arg || arg === '~' || arg === '..') { window.smoothScrollTo(0, 600); close(); return; }
-      if (sections.includes(arg)) {
-        const el = document.getElementById(arg);
-        if (el) {
-          const navH = document.querySelector('nav') ? document.querySelector('nav').offsetHeight : 0;
-          window.smoothScrollTo(el.getBoundingClientRect().top + window.scrollY - navH - 16, 750);
+
+    function renderTabBarWithGap(gapIdx) {
+      tabsEl.querySelectorAll('.terminal-tab, .tab-drop-gap').forEach(function (el) { el.remove(); });
+      sessions.forEach(function (session, i) {
+        if (i === gapIdx) {
+          const gap = document.createElement('div');
+          gap.className = 'tab-drop-gap';
+          tabsEl.insertBefore(gap, tabAdd);
         }
-        close();
+        if (session !== dragSession) {
+          const tab = document.createElement('button');
+          tab.className = 'terminal-tab' + (session === activeSession ? ' active' : '');
+          const lbl = document.createElement('span');
+          lbl.className = 'terminal-tab-label';
+          lbl.textContent = session.name;
+          tab.appendChild(lbl);
+          tabsEl.insertBefore(tab, tabAdd);
+        }
+      });
+      if (gapIdx >= sessions.length) {
+        const gap = document.createElement('div');
+        gap.className = 'tab-drop-gap';
+        tabsEl.insertBefore(gap, tabAdd);
+      }
+    }
+
+    function closeSession(session) {
+      const idx = sessions.indexOf(session);
+      sessions.splice(idx, 1);
+      session.outputEl.remove();
+      if (sessions.length > 0) {
+        switchToSession(sessions[Math.max(0, idx - 1)]);
+      } else if (terminalInstances[0] === instance) {
+        renderTabBar();
+        closeOverlay();
+      } else {
+        instance.destroy();
+      }
+    }
+
+    tabAdd.addEventListener('click', function () {
+      if (sessions.length >= MAX_TABS) return;
+      const session = createSession();
+      switchToSession(session);
+      boot(session);
+    });
+
+    function boot(session) {
+      if (session.booted) return;
+      session.booted = true;
+      print('<span class="t-muted">elshemi.com terminal — type <span class="t-accent">help</span> to get started.</span>');
+    }
+
+    const COMMANDS = {
+      help: [
+        '<span class="t-accent">Available commands:</span>',
+        '  whoami       who is this guy',
+        '  experience   where I\'ve worked',
+        '  skills       what I work with',
+        '  contact      how to reach me',
+        '  particles    re-run the hero animation',
+        '  theme        switch light/dark mode',
+        '  clear        clear the screen',
+        '  exit         close the terminal',
+        '  ls           list site sections',
+        '  cd           navigate to a section',
+        '  pwd          print working directory',
+        '  cat          print file contents',
+        '  echo         write arguments to stdout',
+        '  date         display current date and time',
+        '  ping         send ICMP packets to a host',
+        '  uname        print system information',
+        '  neofetch     display system info with style',
+        '  man          display manual for a command',
+        '  matrix       enter the matrix'
+      ].join('\n'),
+      whoami: [
+        '<span class="t-accent">Youssef Elshemi</span> — Software Engineer, London',
+        'Building payment infrastructure in fintech: API integrations',
+        'processing billions in payments, containerised services on',
+        'Kubernetes, AWS, .NET. BSc Computer Science, University of',
+        'Exeter (First Class Honours). English & Arabic.'
+      ].join('\n'),
+      experience: [
+        '<span class="t-accent">Software Engineer</span> · Alpha Group <span class="t-muted">(Jan 2025 – Present)</span>',
+        '  K8s migrations, Verification of Payee, BoE compliance',
+        '<span class="t-accent">Graduate Software Engineer</span> · Alpha Group <span class="t-muted">(Sep 2023 – Jan 2025)</span>',
+        '  Bank API integrations (£25bn+ processed), STP (-90% processing time)',
+        '<span class="t-accent">Co-Founder & CTO</span> · DataScrapa <span class="t-muted">(Feb 2023 – Jan 2024)</span>',
+        '  AWS serverless data pipeline, millions of records daily'
+      ].join('\n'),
+      skills: [
+        '<span class="t-accent">Languages</span>      C#/.NET Core, Python, TypeScript, Apex',
+        '<span class="t-accent">Cloud/DevOps</span>   AWS, Docker, Kubernetes, IaC, CircleCI, Jenkins',
+        '<span class="t-accent">Data</span>           PostgreSQL, MongoDB, MySQL, Big Data',
+        '<span class="t-accent">Payments</span>       REST APIs, SWIFT, H2H, Open Banking',
+        '<span class="t-accent">Engineering</span>    System Design, Distributed Systems, EDA, CI/CD'
+      ].join('\n'),
+      contact: [
+        'email     <a href="mailto:youssef@elshemi.com" target="_blank" rel="noopener">youssef@elshemi.com</a>',
+        'linkedin  <a href="https://www.linkedin.com/in/youssef-elshemi/" target="_blank" rel="noopener">linkedin.com/in/youssef-elshemi</a>',
+        'github    <a href="https://github.com/YoussefElshemi" target="_blank" rel="noopener">github.com/YoussefElshemi</a>'
+      ].join('\n')
+    };
+
+    function print(html) {
+      const line = document.createElement('div');
+      line.innerHTML = html;
+      activeSession.outputEl.appendChild(line);
+      activeSession.outputEl.scrollTop = activeSession.outputEl.scrollHeight;
+    }
+
+    function printEcho(cmd) {
+      const line = document.createElement('div');
+      const prompt = document.createElement('span');
+      prompt.className = 't-accent';
+      prompt.textContent = '$ ';
+      line.appendChild(prompt);
+      line.appendChild(document.createTextNode(cmd));
+      activeSession.outputEl.appendChild(line);
+      activeSession.outputEl.scrollTop = activeSession.outputEl.scrollHeight;
+    }
+
+    function updateGhost() {
+      suggestion = null;
+      if (ghost) ghost.textContent = '';
+      const val = input.value;
+      if (!val) return;
+      const spaceIdx = val.indexOf(' ');
+      if (spaceIdx === -1) {
+        const match = CMD_NAMES.find(function (c) { return c.startsWith(val.toLowerCase()) && c !== val.toLowerCase(); });
+        if (match) { suggestion = match; if (ghost) ghost.textContent = val + match.slice(val.length); }
+      } else {
+        const base = val.slice(0, spaceIdx).toLowerCase();
+        const arg = val.slice(spaceIdx + 1);
+        const ARG_COMPLETIONS = {
+          man: CMD_NAMES,
+          cd: ['about', 'contact', 'experience', 'skills', '..', '~'],
+          cat: ['about.txt', 'contact.txt', 'experience.txt', 'skills.txt'],
+          ls: ['-la'],
+          theme: ['dark', 'light'],
+          ping: ['elshemi.com']
+        };
+        const completions = ARG_COMPLETIONS[base];
+        if (completions) {
+          const match = completions.find(function (c) { return c.startsWith(arg.toLowerCase()) && c !== arg.toLowerCase(); });
+          if (match) { suggestion = val.slice(0, spaceIdx + 1) + match; if (ghost) ghost.textContent = suggestion; }
+        }
+      }
+    }
+    input.addEventListener('input', function () { cycleMatches = []; cycleIdx = -1; updateGhost(); });
+
+    function run(raw) {
+      if (activeMatrixTeardown) { activeMatrixTeardown(); activeMatrixTeardown = null; }
+      const cmd = raw.trim();
+      printEcho(cmd);
+      if (!cmd) return;
+      const name = cmd.split(/\s+/)[0].toLowerCase();
+      if (name === 'clear') { activeSession.outputEl.innerHTML = ''; return; }
+      if (name === 'exit')  { closeOverlay(); return; }
+      if (name === 'sudo')  { print('youssef is not in the sudoers file. This incident will be reported.'); return; }
+      if (name === 'particles') {
+        print('<span class="t-muted">re-running hero animation…</span>');
+        closeOverlay();
+        window.smoothScrollTo(0, 600);
+        setTimeout(function () { if (window.formParticles) window.formParticles(); }, 650);
         return;
       }
-      print('<span class="t-muted">bash: cd: ' + arg + ': No such file or directory</span>');
-      return;
-    }
-    if (COMMANDS[name]) { print(COMMANDS[name]); return; }
-    const err = document.createElement('div');
-    err.textContent = 'command not found: ' + name;
-    activeSession.outputEl.appendChild(err);
-    print('<span class="t-muted">type <span class="t-accent">help</span> for available commands</span>');
-  }
-
-  input.addEventListener('keydown', function (e) {
-    if (e.key === 'Tab') {
-      e.preventDefault();
-      if (input.value.indexOf(' ') === -1) {
-        if (cycleIdx === -1) {
-          cycleMatches = CMD_NAMES.filter(function (c) { return c.startsWith(input.value.toLowerCase()) && c !== input.value.toLowerCase(); });
-          if (cycleMatches.length === 0) return;
-          cycleIdx = 0;
+      if (name === 'theme') {
+        const arg = (cmd.split(/\s+/)[1] || '').toLowerCase();
+        const current = document.documentElement.getAttribute('data-theme') || 'dark';
+        if (arg === 'light' || arg === 'dark') {
+          if (window.__applyTheme) window.__applyTheme(arg);
+          print('<span class="t-muted">theme set to ' + arg + '</span>');
+        } else if (!arg) {
+          print('<span class="t-muted">current theme: ' + current + ' — usage: theme light|dark</span>');
         } else {
-          cycleIdx = (cycleIdx + 1) % cycleMatches.length;
+          print('<span class="t-muted">usage: theme light|dark</span>');
         }
-        input.value = cycleMatches[cycleIdx];
-        updateGhost();
-      } else {
-        if (suggestion) { input.value = suggestion; cycleMatches = []; cycleIdx = -1; updateGhost(); }
+        return;
       }
-    } else if (e.key === 'ArrowRight') {
-      e.preventDefault();
-      if (suggestion) { input.value = suggestion; cycleMatches = []; cycleIdx = -1; updateGhost(); }
-    } else if (e.key === 'Enter') {
-      cycleMatches = []; cycleIdx = -1;
-      const val = input.value;
-      if (val.trim()) {
-        activeSession.history.push(val);
-        localStorage.setItem(HISTORY_KEY, JSON.stringify(activeSession.history));
+      if (name === 'matrix') {
+        const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+        const out = activeSession.outputEl;
+        const mcW = out.clientWidth;
+        const mcH = out.clientHeight;
+        const mc = document.createElement('canvas');
+        mc.width = mcW;
+        mc.height = mcH;
+        out.style.position = 'relative';
+        mc.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;cursor:pointer;';
+        out.appendChild(mc);
+        const mctx = mc.getContext('2d');
+        const cols = Math.floor(mcW / 14);
+        const drops = Array.from({length: cols}, function () { return Math.random() * -(mcH / 14); });
+        const chars = 'アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン0123456789ABCDEF'.split('');
+        let rafId;
+        function drawMatrix() {
+          mctx.fillStyle = isLight ? 'rgba(245,235,238,0.18)' : 'rgba(10,0,2,0.09)';
+          mctx.fillRect(0, 0, mcW, mcH);
+          mctx.font = '14px "Fira Code", monospace';
+          drops.forEach(function (y, i) {
+            const ch = chars[Math.floor(Math.random() * chars.length)];
+            const b = Math.random();
+            mctx.fillStyle = isLight
+              ? (b > 0.95 ? '#5a0820' : b > 0.6 ? '#8b1530' : '#c05070')
+              : (b > 0.95 ? '#ffb3cc' : b > 0.6 ? '#be1549' : '#6b0c29');
+            mctx.fillText(ch, i * 14, y * 14);
+            drops[i] = y > mcH / 14 && Math.random() > 0.975 ? 0 : y + 1;
+          });
+          rafId = requestAnimationFrame(drawMatrix);
+        }
+        rafId = requestAnimationFrame(drawMatrix);
+        function matrixTeardown() {
+          cancelAnimationFrame(rafId);
+          mc.remove();
+          out.style.position = '';
+          document.removeEventListener('keydown', matrixKey, true);
+          activeMatrixTeardown = null;
+        }
+        function matrixKey(e) {
+          if (e.key === 'Escape') { e.stopImmediatePropagation(); matrixTeardown(); }
+        }
+        document.addEventListener('keydown', matrixKey, true);
+        mc.addEventListener('click', matrixTeardown);
+        activeMatrixTeardown = matrixTeardown;
+        return;
       }
-      activeSession.historyIdx = activeSession.history.length;
+      if (name === 'date') { print(new Date().toString()); return; }
+      if (name === 'echo') { print(cmd.slice(4).trim()); return; }
+      if (name === 'ping') {
+        const host = cmd.slice(4).trim() || 'elshemi.com';
+        const times = Array.from({length: 4}, function () { return (1 + Math.random() * 12).toFixed(1); });
+        const nums = times.map(Number);
+        const avg = (nums.reduce(function (a, b) { return a + b; }, 0) / 4).toFixed(1);
+        print('PING ' + host + ': 56 data bytes');
+        times.forEach(function (t, i) {
+          setTimeout(function () {
+            print('64 bytes from ' + host + ': icmp_seq=' + i + ' ttl=64 time=' + t + ' ms');
+          }, (i + 1) * 800);
+        });
+        setTimeout(function () {
+          print('--- ' + host + ' ping statistics ---');
+          print('4 packets transmitted, 4 received, 0.0% packet loss');
+          print('round-trip min/avg/max = ' + Math.min.apply(null, nums).toFixed(1) + '/' + avg + '/' + Math.max.apply(null, nums).toFixed(1) + ' ms');
+        }, 5 * 800);
+        return;
+      }
+      if (name === 'neofetch') {
+        const theme = document.documentElement.getAttribute('data-theme') || 'dark';
+        const uptime = Math.floor(performance.now() / 1000);
+        const ua = navigator.userAgent;
+        const browser = /Edg/.test(ua) ? 'Edge' : /Chrome/.test(ua) ? 'Chrome' : /Firefox/.test(ua) ? 'Firefox' : /Safari/.test(ua) ? 'Safari' : 'Browser';
+        const particleCount = window.innerWidth < 768 ? 200 : 500;
+        const a = '<span class="t-accent">';
+        const z = '</span>';
+        const logo = [
+          '  ............................  ',
+          ' .............................. ',
+          '................................',
+          '..........    ....    ..........',
+          '...........    ..    ...........',
+          '............        ............',
+          '.............      .............',
+          '..............    ..............',
+          '..............    ..............',
+          '..............    ..............',
+          '................................',
+          ' .............................. ',
+          '  ............................  ',
+        ];
+        const info = [
+          'youssef@elshemi.com',
+          a + '───────────────────' + z,
+          'OS:         elshemi.com v1.0',
+          'Host:       ' + browser,
+          'Uptime:     ' + uptime + 's',
+          'Shell:      bash (simulated)',
+          'Theme:      ' + theme,
+          'Particles:  ' + particleCount,
+          'Location:   London, UK',
+          'Languages:  C#, Python, TypeScript',
+        ];
+        if (window.innerWidth < 768) {
+          print(info.join('\n'));
+        } else {
+          const infoStart = 3;
+          print(logo.map(function (l, i) {
+            const infoIdx = i - infoStart;
+            return a + l + z + (infoIdx >= 0 && infoIdx < info.length ? '   ' + info[infoIdx] : '');
+          }).join('\n'));
+        }
+        return;
+      }
+      if (name === 'man') {
+        const topic = cmd.slice(3).trim().toLowerCase();
+        if (!topic) { print('<span class="t-muted">usage: man [command]</span>'); return; }
+        const pages = {
+          whoami:    'NAME\n    whoami - print current user\n\nSYNOPSIS\n    whoami\n\nDESCRIPTION\n    Displays the name of the current user of this terminal.',
+          help:      'NAME\n    help - list available commands\n\nSYNOPSIS\n    help\n\nDESCRIPTION\n    Prints a summary of all commands supported by this terminal.',
+          ls:        'NAME\n    ls - list site sections\n\nSYNOPSIS\n    ls [-la]\n\nDESCRIPTION\n    Without flags, lists site sections. With -la shows a long listing with permissions and sizes.',
+          pwd:       'NAME\n    pwd - print working directory\n\nSYNOPSIS\n    pwd\n\nDESCRIPTION\n    Outputs the current working directory path.',
+          cat:       'NAME\n    cat - print file contents\n\nSYNOPSIS\n    cat [file]\n\nDESCRIPTION\n    Prints the contents of the given file. Supported files: about.txt, experience.txt, skills.txt, contact.txt.',
+          cd:        'NAME\n    cd - navigate to a section\n\nSYNOPSIS\n    cd [section]\n\nDESCRIPTION\n    Scrolls to the given section and closes the terminal. Sections: about, experience, skills, contact. Use cd or cd ~ to return to the top.',
+          echo:      'NAME\n    echo - write arguments to stdout\n\nSYNOPSIS\n    echo [text]\n\nDESCRIPTION\n    Writes the given text to the terminal output.',
+          date:      'NAME\n    date - display current date and time\n\nSYNOPSIS\n    date\n\nDESCRIPTION\n    Prints the current date and time from your system clock.',
+          ping:      'NAME\n    ping - send ICMP packets to a host\n\nSYNOPSIS\n    ping [host]\n\nDESCRIPTION\n    Sends 4 simulated ICMP packets to the given host and prints round-trip statistics.',
+          uname:     'NAME\n    uname - print system information\n\nSYNOPSIS\n    uname\n\nDESCRIPTION\n    Prints system information about the current environment.',
+          neofetch:  'NAME\n    neofetch - display system information with style\n\nSYNOPSIS\n    neofetch\n\nDESCRIPTION\n    Prints a summary of the current environment including theme, uptime, and particle count.',
+          matrix:    'NAME\n    matrix - enter the matrix\n\nSYNOPSIS\n    matrix\n\nDESCRIPTION\n    Renders a Matrix rain animation inside the terminal. Click the canvas or press ESC to stop.',
+          theme:     'NAME\n    theme - toggle light/dark mode\n\nSYNOPSIS\n    theme [light|dark]\n\nDESCRIPTION\n    Without arguments, shows the current theme. With an argument, switches to that theme.',
+          particles: 'NAME\n    particles - re-run the hero animation\n\nSYNOPSIS\n    particles\n\nDESCRIPTION\n    Scrolls to the top and replays the particle formation animation.',
+          clear:     'NAME\n    clear - clear the terminal\n\nSYNOPSIS\n    clear\n\nDESCRIPTION\n    Removes all output from the terminal screen.',
+          exit:      'NAME\n    exit - close the terminal\n\nSYNOPSIS\n    exit\n\nDESCRIPTION\n    Closes the terminal overlay.',
+          sudo:      'NAME\n    sudo - execute a command as superuser\n\nSYNOPSIS\n    sudo [command]\n\nDESCRIPTION\n    You are not in the sudoers file. This incident will be reported.'
+        };
+        if (!pages[topic]) { print('No manual entry for ' + topic); return; }
+        print(pages[topic]);
+        return;
+      }
+      if (name === 'ls') {
+        const arg = cmd.slice(2).trim();
+        if (arg === '-la') {
+          print([
+            'total 9',
+            'drwxr-xr-x  <span class="t-accent">hero/</span>            4.2K  Jan 25 2025',
+            'drwxr-xr-x  <span class="t-accent">about/</span>           2.1K  Jan 25 2025',
+            'drwxr-xr-x  <span class="t-accent">experience/</span>      8.4K  Jan 25 2025',
+            'drwxr-xr-x  <span class="t-accent">skills/</span>          3.7K  Jan 25 2025',
+            'drwxr-xr-x  <span class="t-accent">contact/</span>         1.8K  Jan 25 2025',
+            '-rw-r--r--  about.txt           512  Jan 25 2025',
+            '-rw-r--r--  experience.txt      1.2K  Jan 25 2025',
+            '-rw-r--r--  skills.txt           892  Jan 25 2025',
+            '-rw-r--r--  contact.txt          256  Jan 25 2025'
+          ].join('\n'));
+        } else {
+          print('<span class="t-accent">hero/</span>  <span class="t-accent">about/</span>  <span class="t-accent">experience/</span>  <span class="t-accent">skills/</span>  <span class="t-accent">contact/</span>  about.txt  experience.txt  skills.txt  contact.txt');
+        }
+        return;
+      }
+      if (name === 'pwd')   { print('/home/youssef/elshemi.com'); return; }
+      if (name === 'uname') { print('Darwin elshemi.com 23.0.0 Browser x86_64 JavaScript'); return; }
+      if (name === 'cat') {
+        const arg = cmd.slice(3).trim();
+        if (arg === 'about.txt') {
+          print('Software engineer with 3 years of experience building payment infrastructure in fintech. Working across the full stack — from API integrations processing billions in payments to containerised services on Kubernetes. AWS, .NET, and distributed systems.');
+        } else if (arg === 'experience.txt') {
+          print(COMMANDS.experience);
+        } else if (arg === 'skills.txt') {
+          print(COMMANDS.skills);
+        } else if (arg === 'contact.txt') {
+          print(COMMANDS.contact);
+        } else {
+          print('cat: ' + (arg || '(no file)') + ': No such file or directory');
+        }
+        return;
+      }
+      if (name === 'cd') {
+        const arg = cmd.slice(2).trim().toLowerCase();
+        const sections = ['about', 'experience', 'skills', 'contact'];
+        if (!arg || arg === '~' || arg === '..') { window.smoothScrollTo(0, 600); closeOverlay(); return; }
+        if (sections.includes(arg)) {
+          const el = document.getElementById(arg);
+          if (el) {
+            const navH = document.querySelector('nav') ? document.querySelector('nav').offsetHeight : 0;
+            window.smoothScrollTo(el.getBoundingClientRect().top + window.scrollY - navH - 16, 750);
+          }
+          closeOverlay();
+          return;
+        }
+        print('<span class="t-muted">bash: cd: ' + arg + ': No such file or directory</span>');
+        return;
+      }
+      if (COMMANDS[name]) { print(COMMANDS[name]); return; }
+      const err = document.createElement('div');
+      err.textContent = 'command not found: ' + name;
+      activeSession.outputEl.appendChild(err);
+      print('<span class="t-muted">type <span class="t-accent">help</span> for available commands</span>');
+    }
+
+    function reset() {
+      sessions.forEach(function (s) { s.outputEl.remove(); });
+      sessions = [];
+      activeSession = null;
+      nextId = 1;
+      if (ghost) ghost.textContent = '';
+      suggestion = null;
       input.value = '';
-      updateGhost();
-      run(val);
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      cycleMatches = []; cycleIdx = -1;
-      if (activeSession.historyIdx > 0) {
-        activeSession.historyIdx--;
-        input.value = activeSession.history[activeSession.historyIdx];
-        updateGhost();
-      }
-    } else if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      cycleMatches = []; cycleIdx = -1;
-      if (activeSession.historyIdx < activeSession.history.length - 1) {
-        activeSession.historyIdx++;
-        input.value = activeSession.history[activeSession.historyIdx];
-      } else {
+    }
+
+    const titlebar = rootEl.querySelector('.terminal-titlebar');
+    if (titlebar) {
+      let dragStartX, dragStartY, dragOrigLeft, dragOrigTop;
+      titlebar.addEventListener('pointerdown', function (e) {
+        if (rootEl.classList.contains('fullscreen')) return;
+        if (e.target.classList.contains('terminal-dot') ||
+            e.target.classList.contains('terminal-tab') ||
+            e.target.classList.contains('terminal-tab-close') ||
+            e.target.classList.contains('terminal-tab-label') ||
+            e.target.classList.contains('terminal-tab-add')) return;
+        const overlayRect = overlay.getBoundingClientRect();
+        const winRect = rootEl.getBoundingClientRect();
+        dragStartX = e.clientX;
+        dragStartY = e.clientY;
+        dragOrigLeft = winRect.left - overlayRect.left;
+        dragOrigTop = winRect.top - overlayRect.top;
+        rootEl.style.transform = 'none';
+        rootEl.style.left = dragOrigLeft + 'px';
+        rootEl.style.top = dragOrigTop + 'px';
+        titlebar.setPointerCapture(e.pointerId);
+      });
+      titlebar.addEventListener('pointermove', function (e) {
+        if (!titlebar.hasPointerCapture(e.pointerId)) return;
+        const overlayRect = overlay.getBoundingClientRect();
+        const winRect = rootEl.getBoundingClientRect();
+        const maxLeft = overlayRect.width - winRect.width;
+        const maxTop = overlayRect.height - winRect.height;
+        rootEl.style.left = Math.min(Math.max(0, dragOrigLeft + (e.clientX - dragStartX)), maxLeft) + 'px';
+        rootEl.style.top = Math.min(Math.max(0, dragOrigTop + (e.clientY - dragStartY)), maxTop) + 'px';
+      });
+      titlebar.addEventListener('pointerup', function (e) {
+        titlebar.releasePointerCapture(e.pointerId);
+      });
+    }
+
+    input.addEventListener('keydown', function (e) {
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        if (input.value.indexOf(' ') === -1) {
+          if (cycleIdx === -1) {
+            cycleMatches = CMD_NAMES.filter(function (c) { return c.startsWith(input.value.toLowerCase()) && c !== input.value.toLowerCase(); });
+            if (cycleMatches.length === 0) return;
+            cycleIdx = 0;
+          } else {
+            cycleIdx = (cycleIdx + 1) % cycleMatches.length;
+          }
+          input.value = cycleMatches[cycleIdx];
+          updateGhost();
+        } else {
+          if (suggestion) { input.value = suggestion; cycleMatches = []; cycleIdx = -1; updateGhost(); }
+        }
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        if (suggestion) { input.value = suggestion; cycleMatches = []; cycleIdx = -1; updateGhost(); }
+      } else if (e.key === 'Enter') {
+        cycleMatches = []; cycleIdx = -1;
+        const val = input.value;
+        if (val.trim()) {
+          activeSession.history.push(val);
+          localStorage.setItem(HISTORY_KEY, JSON.stringify(activeSession.history));
+        }
         activeSession.historyIdx = activeSession.history.length;
         input.value = '';
+        updateGhost();
+        run(val);
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        cycleMatches = []; cycleIdx = -1;
+        if (activeSession.historyIdx > 0) {
+          activeSession.historyIdx--;
+          input.value = activeSession.history[activeSession.historyIdx];
+          updateGhost();
+        }
+      } else if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        cycleMatches = []; cycleIdx = -1;
+        if (activeSession.historyIdx < activeSession.history.length - 1) {
+          activeSession.historyIdx++;
+          input.value = activeSession.history[activeSession.historyIdx];
+        } else {
+          activeSession.historyIdx = activeSession.history.length;
+          input.value = '';
+        }
+        updateGhost();
       }
-      updateGhost();
-    }
+    });
+
+    rootEl.addEventListener('pointerdown', function () { focusedInstance = instance; });
+    rootEl.addEventListener('click', function (e) {
+      if (e.target.closest('a')) return;
+      if (window.getSelection().toString()) return;
+      input.focus();
+    });
+
+    const instance = {
+      element: rootEl,
+      get activeSession() { return activeSession; },
+      get sessions() { return sessions; },
+      reset: reset,
+      ensureBooted: function () {
+        if (sessions.length === 0) {
+          const session = createSession();
+          switchToSession(session);
+          boot(session);
+        } else {
+          boot(activeSession);
+        }
+      },
+      addSession: function (session) {
+        session.outputEl.remove();
+        rootEl.insertBefore(session.outputEl, rootEl.querySelector('.terminal-input-row'));
+        sessions.push(session);
+        switchToSession(session);
+      },
+      removeSession: function (session) {
+        const idx = sessions.indexOf(session);
+        if (idx === -1) return;
+        sessions.splice(idx, 1);
+        session.outputEl.style.display = 'none';
+        if (sessions.length > 0) switchToSession(sessions[Math.max(0, idx - 1)]);
+        else renderTabBar();
+      },
+      destroy: function () {
+        if (activeMatrixTeardown) { activeMatrixTeardown(); activeMatrixTeardown = null; }
+        sessions.forEach(function (s) { s.outputEl.remove(); });
+        const i = terminalInstances.indexOf(instance);
+        if (i !== -1) terminalInstances.splice(i, 1);
+        rootEl.remove();
+        if (focusedInstance === instance) focusedInstance = terminalInstances[0] || null;
+      }
+    };
+
+    return instance;
+  }
+
+  const primaryWin = document.getElementById('terminal-window');
+  primaryWin.innerHTML = document.getElementById('terminal-window-template').innerHTML;
+  const primaryInstance = createTerminal(primaryWin);
+  terminalInstances.push(primaryInstance);
+  focusedInstance = primaryInstance;
+
+  primaryWin.querySelector('.dot-close').addEventListener('click', function (e) { e.stopPropagation(); primaryInstance.reset(); closeOverlay(); });
+  primaryWin.querySelector('.dot-min').addEventListener('click', function (e) { e.stopPropagation(); closeOverlay(); });
+  primaryWin.querySelector('.dot-max').addEventListener('click', function (e) {
+    e.stopPropagation();
+    primaryWin.classList.remove('minimized');
+    primaryWin.classList.toggle('fullscreen');
+    primaryWin.querySelector('.terminal-input').focus();
   });
+
+  function open() {
+    openOverlay();
+    primaryWin.classList.remove('minimized');
+    primaryInstance.ensureBooted();
+    primaryWin.querySelector('.terminal-input').focus();
+  }
 
   window.__terminalOpen = open;
-  window.__terminalGetOutput = function () { return activeSession ? activeSession.outputEl : null; };
-  toggle.addEventListener('click', function () { overlay.hidden ? open() : close(); });
-
-  overlay.addEventListener('click', function (e) { if (e.target === overlay) close(); });
-
-  document.getElementById('terminal-window').addEventListener('click', function (e) {
-    if (e.target.closest('a')) return;
-    if (window.getSelection().toString()) return;
-    input.focus();
-  });
-
+  window.__terminalGetOutput = function () {
+    var inst = focusedInstance || primaryInstance;
+    return inst && inst.activeSession ? inst.activeSession.outputEl : null;
+  };
+  toggle.addEventListener('click', function () { overlay.hidden ? open() : closeOverlay(); });
+  overlay.addEventListener('click', function (e) { if (e.target === overlay) closeOverlay(); });
   document.addEventListener('keydown', function (e) {
-    if (e.key === '`' && overlay.hidden && document.activeElement.tagName !== 'INPUT') {
-      e.preventDefault();
-      open();
-    } else if (e.key === 'Escape' && !overlay.hidden) {
-      close();
-    }
+    if (e.key === '`' && overlay.hidden && document.activeElement.tagName !== 'INPUT') { open(); }
+    else if (e.key === 'Escape' && !overlay.hidden) { closeOverlay(); }
   });
 })();
 

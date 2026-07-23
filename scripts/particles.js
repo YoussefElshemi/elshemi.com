@@ -359,8 +359,12 @@ window.initParticles = function (options) {
   }
 
   function connect() {
+    const MAX_CONNECTIONS = 50;
+    const counts = new Int16Array(particles.length);
     for (let i = 0; i < particles.length; i++) {
+      if (counts[i] >= MAX_CONNECTIONS) continue;
       for (let j = i + 1; j < particles.length; j++) {
+        if (counts[j] >= MAX_CONNECTIONS) continue;
         const dx = particles[i].sx - particles[j].sx;
         const dy = particles[i].sy - particles[j].sy;
         const d = Math.sqrt(dx * dx + dy * dy);
@@ -372,6 +376,9 @@ window.initParticles = function (options) {
           ctx.strokeStyle = `rgba(190,21,73,${a})`;
           ctx.lineWidth = 0.5;
           ctx.stroke();
+          counts[i]++;
+          counts[j]++;
+          if (counts[i] >= MAX_CONNECTIONS) break;
         }
       }
     }
