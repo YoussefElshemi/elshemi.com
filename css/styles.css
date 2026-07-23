@@ -1148,8 +1148,8 @@ html[data-theme='light'] #theme-toggle .icon-moon { display: block; }
   position: fixed;
   pointer-events: none;
   z-index: 9999;
-  width: 480px;
-  height: 260px;
+  width: 640px;
+  height: 420px;
   border: 2px dashed var(--accent);
   border-radius: 8px;
   opacity: 0.5;
