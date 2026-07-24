@@ -440,10 +440,15 @@ setTimeout(() => {
   const terminalInstances = [];
   let focusedInstance = null;
 
+  function isMobile() { return window.innerWidth <= 768; }
+
   function fitOverlay() {
     if (overlay.hidden || !window.visualViewport) return;
     overlay.style.top = window.visualViewport.offsetTop + 'px';
     overlay.style.height = window.visualViewport.height + 'px';
+    if (isMobile() && focusedInstance && focusedInstance.activeSession) {
+      focusedInstance.activeSession.outputEl.scrollTop = focusedInstance.activeSession.outputEl.scrollHeight;
+    }
   }
   if (window.visualViewport) {
     window.visualViewport.addEventListener('resize', fitOverlay);
@@ -567,6 +572,7 @@ setTimeout(() => {
         tab.className = 'terminal-tab' + (session === activeSession ? ' active' : '');
         tab.addEventListener('click', function () { if (session !== activeSession) switchToSession(session); });
         tab.addEventListener('pointerdown', function (e) {
+          if (isMobile()) return;
           if (e.button !== 0) return;
           if (dragSession) return;
           if (e.target.classList.contains('terminal-tab-close')) return;
@@ -1093,6 +1099,7 @@ setTimeout(() => {
     if (titlebar) {
       let dragStartX, dragStartY, dragOrigLeft, dragOrigTop;
       titlebar.addEventListener('pointerdown', function (e) {
+        if (isMobile()) return;
         if (rootEl.classList.contains('fullscreen')) return;
         if (e.target.classList.contains('terminal-dot') ||
             e.target.classList.contains('terminal-tab') ||
