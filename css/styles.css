@@ -668,7 +668,99 @@ footer a:hover { color: var(--accent); }
 .nav-hamburger.open span:nth-child(2) { opacity: 0; }
 .nav-hamburger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
 
+#projects {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 6rem 2rem;
+}
+
+.projects-inner {
+  width: 100%;
+  max-width: var(--max-width);
+  margin: 0 auto;
+}
+
+.projects-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.project-card {
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: row;
+  gap: 0;
+  transition: border-color 0.3s;
+}
+.project-card:hover { border-color: rgba(var(--accent-rgb), 0.45); }
+
+.project-card-main {
+  flex: 3;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  padding-right: 2rem;
+}
+
+.project-card-side {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  border-left: 1px solid var(--border-subtle);
+  padding-left: 1.5rem;
+}
+
+.project-name {
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.project-tags {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.project-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  border-radius: 6px;
+  padding: 0.4rem 0.75rem;
+  text-decoration: none;
+  width: fit-content;
+}
+.project-badge--closed {
+  color: var(--text-muted);
+  border: 1px solid var(--border-subtle);
+  background: transparent;
+}
+.project-badge--link {
+  color: var(--accent);
+  border: 1px solid rgba(var(--accent-rgb), 0.35);
+  background: rgba(var(--accent-rgb), 0.06);
+  transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+}
+.project-badge--link:hover {
+  border-color: var(--accent);
+  background: rgba(var(--accent-rgb), 0.12);
+  box-shadow: 0 0 12px rgba(var(--accent-rgb), 0.25);
+}
+
 @media (max-width: 768px) {
+  .project-card { flex-direction: column; }
+  .project-card-main { padding-right: 0; }
+  .project-card-side { border-left: none; border-top: 1px solid var(--border-subtle); padding-left: 0; padding-top: 1rem; }
+
   nav {
     padding: 1rem 1.25rem;
     padding-top: calc(1rem + env(safe-area-inset-top, 0px));

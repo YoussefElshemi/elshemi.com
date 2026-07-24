@@ -174,7 +174,7 @@ setTimeout(() => {
       }
     });
   }, { threshold: 0.25 });
-  document.querySelectorAll('.skill-group').forEach(el => skillObs.observe(el));
+  document.querySelectorAll('.skill-group, .project-card').forEach(el => skillObs.observe(el));
 })();
 
 (function () {
@@ -276,7 +276,7 @@ setTimeout(() => {
 })();
 
 (function () {
-  const sections = ['hero', 'about', 'experience', 'skills', 'contact'];
+  const sections = ['hero', 'about', 'experience', 'skills', 'projects', 'contact'];
   const container = document.getElementById('section-dots');
   const dots = sections.map(id => {
     const d = document.createElement('div');
@@ -1064,7 +1064,7 @@ setTimeout(() => {
       }
       if (name === 'cd') {
         const arg = cmd.slice(2).trim().toLowerCase();
-        const sections = ['about', 'experience', 'skills', 'contact'];
+        const sections = ['about', 'experience', 'skills', 'projects', 'contact'];
         if (!arg || arg === '~' || arg === '..') { window.smoothScrollTo(0, 600); closeOverlay(); return; }
         if (sections.includes(arg)) {
           const el = document.getElementById(arg);
