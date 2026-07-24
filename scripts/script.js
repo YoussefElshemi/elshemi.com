@@ -842,7 +842,7 @@ setTimeout(() => {
         const arg = val.slice(spaceIdx + 1);
         const ARG_COMPLETIONS = {
           man: CMD_NAMES,
-          cd: ['about', 'contact', 'experience', 'skills', '..', '~'],
+          cd: ['about', 'contact', 'experience', 'skills', 'projects', '..', '~'],
           cat: ['about.txt', 'contact.txt', 'experience.txt', 'skills.txt'],
           ls: ['-la'],
           theme: ['dark', 'light'],
@@ -1034,6 +1034,7 @@ setTimeout(() => {
             'drwxr-xr-x  <span class="t-accent">about/</span>           2.1K  Jan 25 2025',
             'drwxr-xr-x  <span class="t-accent">experience/</span>      8.4K  Jan 25 2025',
             'drwxr-xr-x  <span class="t-accent">skills/</span>          3.7K  Jan 25 2025',
+            'drwxr-xr-x  <span class="t-accent">projects/</span>          3.7K  Jan 25 2025',
             'drwxr-xr-x  <span class="t-accent">contact/</span>         1.8K  Jan 25 2025',
             '-rw-r--r--  about.txt           512  Jan 25 2025',
             '-rw-r--r--  experience.txt      1.2K  Jan 25 2025',
@@ -1041,7 +1042,7 @@ setTimeout(() => {
             '-rw-r--r--  contact.txt          256  Jan 25 2025'
           ].join('\n'));
         } else {
-          print('<span class="t-accent">hero/</span>  <span class="t-accent">about/</span>  <span class="t-accent">experience/</span>  <span class="t-accent">skills/</span>  <span class="t-accent">contact/</span>  about.txt  experience.txt  skills.txt  contact.txt');
+          print('<span class="t-accent">hero/</span>  <span class="t-accent">about/</span>  <span class="t-accent">experience/</span>  <span class="t-accent">skills/</span>  <span class="t-accent">projects/</span>  <span class="t-accent">contact/</span>  about.txt  experience.txt  skills.txt  contact.txt');
         }
         return;
       }
@@ -1309,6 +1310,7 @@ setTimeout(() => {
     { section: 'Navigation', label: 'About',            icon: NAV_ICON, kbd: null, action: () => scrollToSection('about') },
     { section: 'Navigation', label: 'Experience',       icon: NAV_ICON, kbd: null, action: () => scrollToSection('experience') },
     { section: 'Navigation', label: 'Skills',           icon: NAV_ICON, kbd: null, action: () => scrollToSection('skills') },
+    { section: 'Navigation', label: 'Projects',           icon: NAV_ICON, kbd: null, action: () => scrollToSection('projects') },
     { section: 'Navigation', label: 'Contact',          icon: NAV_ICON, kbd: null, action: () => scrollToSection('contact') },
     { section: 'Actions',    label: 'Toggle Theme',     icon: ACT_ICON, kbd: null, action: () => { const next = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light'; if (window.__applyTheme) window.__applyTheme(next); } },
     { section: 'Actions',    label: 'Open Terminal',    icon: ACT_ICON, kbd: '`',  action: () => { if (window.__terminalOpen) window.__terminalOpen(); } },
